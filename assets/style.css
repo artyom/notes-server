@@ -1,0 +1,57 @@
+/* :root {color-scheme: light dark;} */
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --main-bg-color: white;
+        --main-bg-accent-color: #f4f4f4;
+        --main-text-color: black;
+        --link-color: rgb(3, 102, 214);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --main-bg-color: #22272e;
+        --main-bg-accent-color: rgb(45,51,59);
+        --main-text-color: rgb(173, 186, 199);
+        --link-color: rgb(83, 155, 245);
+    }
+}
+
+
+html {
+    font-family: ui-serif;
+    line-height: 1.5;
+    color: var(--main-text-color);
+    background-color: var(--main-bg-color);
+}
+body {
+    max-width: 45em;
+    margin: auto;
+    padding-right: 1em;
+    padding-left: 1em;
+}
+code, pre {
+    font-family: ui-monospace, monospace;
+    line-height: 1.5;
+    background-color: var(--main-bg-accent-color);
+}
+pre {padding: 1ex 1ch;}
+p, ul, ol {line-height: 1.5;}
+
+.buttons {text-align: right;}
+.buttons form {display: inline-block;}
+.buttons button {border: 0; background-color: transparent;}
+
+:any-link {color: var(--link-color); text-decoration: none;}
+:any-link:hover {text-decoration: underline;}
+
+.feather {
+    width: 24px;
+    height: 24px;
+    stroke: var(--main-text-color);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}

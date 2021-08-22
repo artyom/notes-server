@@ -1,0 +1,65 @@
+<!doctype html><head><meta charset="utf-8"><title>Edit page</title>
+    <style>
+        html,body{margin: 0; padding: 0;}
+        div#editor {height: 100vh; box-sizing: border-box; overflow: hidden;}
+    </style>
+</head>
+<body>
+    <form method="POST" id="MyForm">
+        <div id="editor"></div>
+        <input required type="hidden" id="text" name="text">
+        <!-- <input type="submit" value="Save" id="submitButton" onclick="save()"> -->
+    </form>
+    <script src="/.assets/monaco/vs/loader.js"></script>
+<script>
+    require.config({ paths: { 'vs': '/.assets/monaco/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        let theme = "vs";
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            theme = "vs-dark";
+        }
+        window.editor = monaco.editor.create(document.getElementById('editor'), {
+            value: "{{.Text}}",
+            language: 'markdown',
+            lineNumbers: "off",
+            wordWrap: "on",
+            fontFamily: "'Go Mono', 'SF Mono', 'Iosevka Extended', 'JetBrains Mono', Menlo, Monaco, 'Courier New', monospace",
+            fontSize: 14,
+            roundedSelection: false,
+            scrollBeyondLastLine: false,
+            quickSuggestions: false,
+            minimap: {enabled:false},
+            theme: theme,
+        });
+
+        window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, function() {
+            var inp = document.getElementById('text');
+            inp.value = window.editor.getValue();
+            document.forms['MyForm'].submit();
+        });
+
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
+            if (e.matches) {
+                console.log('Dark mode');
+                monaco.editor.setTheme("vs-dark");
+            } else {
+                console.log('Light mode');
+                monaco.editor.setTheme("vs");
+            }
+        })
+
+        const divElem = document.getElementById('editor');
+        const resizeObserver = new ResizeObserver(entries => {
+            window.editor.layout();
+        });
+        resizeObserver.observe(divElem);
+    });
+
+    // function save() {
+    //     var value = window.editor.getValue()
+    //     var inp = document.getElementById('text');
+    //     inp.value = value;
+    // };
+
+</script>
+</body>
