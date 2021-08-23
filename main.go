@@ -286,6 +286,10 @@ func favicon(w http.ResponseWriter, _ *http.Request) {
 }
 
 func pageNotFound(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Accept"), "text/html") {
+		http.NotFound(w, r)
+		return
+	}
 	w.WriteHeader(http.StatusNotFound)
 	page404Template.Execute(w, r.URL.Path)
 }
