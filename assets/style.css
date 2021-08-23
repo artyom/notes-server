@@ -36,7 +36,10 @@ code, pre {
     line-height: 1.5;
     background-color: var(--main-bg-accent-color);
 }
-pre {padding: 1ex 1ch;}
+pre {
+    padding: 1ex 1ch;
+    white-space: pre-wrap;
+}
 p, ul, ol {line-height: 1.5;}
 
 .buttons {text-align: right;}
