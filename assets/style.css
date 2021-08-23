@@ -46,7 +46,12 @@ pre {
 }
 p, ul, ol {line-height: 1.5;}
 
-.buttons {text-align: right;}
+.buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-flow: row ;
+}
 .buttons form {display: inline-block;}
 .buttons button {border: 0; background-color: transparent;}
 
