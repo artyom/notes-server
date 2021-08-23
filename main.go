@@ -257,11 +257,17 @@ func initSchema(ctx context.Context, db *sql.DB) error {
 
 func textTitle(text string) string {
 	const cutset = "#\t\r\n "
+	var out string
 	i := strings.IndexByte(text, '\n')
 	if i == -1 {
-		return strings.Trim(text, cutset)
+		out = strings.Trim(text, cutset)
+	} else {
+		out = strings.Trim(text[:i], cutset)
 	}
-	return strings.Trim(text[:i], cutset)
+	if out == "" {
+		out = "Untitled"
+	}
+	return out
 }
 
 func favicon(w http.ResponseWriter, _ *http.Request) {
