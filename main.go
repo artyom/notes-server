@@ -165,7 +165,7 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&title, &text); err {
 	case nil:
 	case sql.ErrNoRows:
-		http.NotFound(w, r)
+		pageNotFound(w, r)
 		return
 	default:
 		log.Printf("get %q: %v", r.URL, err)
@@ -276,6 +276,11 @@ func favicon(w http.ResponseWriter, _ *http.Request) {
 	io.Copy(w, f)
 }
 
+func pageNotFound(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	page404Template.Execute(w, r.URL.Path)
+}
+
 func init() {
 	var err error
 	monacoBundleFS, err = zip.NewReader(bytes.NewReader(monacoBundle), int64(len(monacoBundle)))
@@ -300,11 +305,14 @@ var (
 	indexBody string
 	//go:embed monaco.html
 	richEditPageBody string
+	//go:embed 404.html
+	page404Body string
 
 	pageTemplate         = template.Must(template.New("page").Parse(pageBody))
 	editPageTemplate     = template.Must(template.New("edit").Parse(editPageBody))
 	richEditPageTemplate = template.Must(template.New("edit").Parse(richEditPageBody))
 	indexTemplate        = template.Must(template.New("index").Parse(indexBody))
+	page404Template      = template.Must(template.New("404").Parse(page404Body))
 )
 
 var markdown = goldmark.New(goldmark.WithExtensions(extension.Table))
