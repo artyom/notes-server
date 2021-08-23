@@ -324,6 +324,6 @@ var (
 	page404Template      = template.Must(template.New("404").Parse(page404Body))
 )
 
-var markdown = goldmark.New(goldmark.WithExtensions(extension.Table))
+var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM))
 
 var crlf = strings.NewReplacer("\r\n", "\n")
