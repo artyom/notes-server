@@ -5,6 +5,6 @@
 <body>
     <h1>Index</h1>
     <ul>{{range . -}}
-        <li><a href="/{{.Path}}">{{.Title}}</a> (modified at {{.Mtime}})</li>
+        <li><a href="/{{.Path}}">{{.Title}}</a> (updated at {{.Mtime.Format "2006-01-02 15:04"}})</li>
     {{end}}</ul>
 </body>
