@@ -150,6 +150,9 @@ func (h *handler) editPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	if text == "" {
+		text = "# Page title\n\nPut your text here, save with Cmd-s.\n"
+	}
 	// editPageTemplate.Execute(w, struct{ Text string }{Text: text})
 	richEditPageTemplate.Execute(w, struct{ Text string }{Text: text})
 }
