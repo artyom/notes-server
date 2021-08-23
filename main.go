@@ -331,3 +331,5 @@ var (
 var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM))
 
 var crlf = strings.NewReplacer("\r\n", "\n")
+
+//go:generate go run ./update-monaco-bundle https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.27.0.tgz
