@@ -1,4 +1,10 @@
-/* :root {color-scheme: light dark;} */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+    --font-serif: 'IBM Plex Serif', 'Georgia', Times, serif;
+    --font-sans-serif: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-monospace: 'IBM Plex Mono', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', Courier, monospace;
+}
 
 @media (prefers-color-scheme: light) {
     :root {
@@ -18,16 +24,28 @@
     }
 }
 
-/* font customizations from https://www.cssfontstack.com */
-h1 { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 26px; font-style: normal; font-variant: normal; font-weight: bold; line-height: 26px; }
-h2 { font-family: "Arial Narrow", Arial, sans-serif; font-size: 20px; font-style: normal; font-variant: normal; font-weight: bold; line-height: 26px; }
-p, ul, ol { font-family: Georgia, Times, "Times New Roman", serif; font-size: 16px; font-style: normal; font-variant: normal; font-weight: 400; line-height: 26px; }
-blockquote { font-family: Georgia, Times, "Times New Roman", serif; font-size: 20px; font-style: normal; font-variant: normal; font-weight: 400; line-height: 26px; }
-pre, code { font-family: "Lucida Sans Typewriter", "Lucida Console", monaco, "Bitstream Vera Sans Mono", monospace; font-size: 13px; font-style: normal; font-variant: normal; font-weight: 400; line-height: 26px; }
+blockquote {
+    font-family: var(--font-sans-serif);
+    font-style: italic;
+}
+
+pre, code {
+    font-family: var(--font-monospace);
+}
+
+h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+}
+
+h1 {font-size: 26px; line-height: 26px;}
+h2 {font-size: 20px; line-height: 26px;}
 
 html {
-    font-family: Georgia, Times, "Times New Roman", serif;
-    line-height: 1.5;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 26px;
     color: var(--main-text-color);
     background-color: var(--main-bg-color);
 }
@@ -40,8 +58,6 @@ body {
 pre {
     white-space: pre-wrap;
 }
-p, ul, ol {line-height: 1.5;}
-
 .buttons {
     width: 100%;
     display: grid;
