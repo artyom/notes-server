@@ -166,8 +166,9 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var text, title string
-	const query = `SELECT Title, Text FROM notes WHERE Path=@path`
-	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&title, &text); err {
+	var mtime int64
+	const query = `SELECT Title, Text, Mtime FROM notes WHERE Path=@path`
+	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&title, &text, &mtime); err {
 	case nil:
 	case sql.ErrNoRows:
 		pageNotFound(w, r)
@@ -183,6 +184,7 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Last-Modified", time.Unix(mtime, 0).UTC().Format(http.TimeFormat))
 	pageTemplate.Execute(w, struct {
 		Title   string
 		Text    template.HTML
