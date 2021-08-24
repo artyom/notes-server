@@ -22,6 +22,7 @@ import (
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
 	_ "modernc.org/sqlite"
 )
 
@@ -334,7 +335,10 @@ var (
 	page404Template      = template.Must(template.New("404").Parse(page404Body))
 )
 
-var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM))
+var markdown = goldmark.New(
+	goldmark.WithExtensions(extension.GFM),
+	goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+)
 
 var crlf = strings.NewReplacer("\r\n", "\n")
 
