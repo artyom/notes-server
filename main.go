@@ -48,6 +48,7 @@ func run(ctx context.Context) error {
 	h := &handler{db: db}
 	mux := http.NewServeMux()
 	mux.Handle("/", h)
+	mux.HandleFunc("/robots.txt", http.HandlerFunc(noRobots))
 	mux.HandleFunc("/favicon.ico", http.HandlerFunc(favicon))
 	afs, err := fs.Sub(assetsFS, "assets")
 	if err != nil {
@@ -272,6 +273,10 @@ func textTitle(text string) string {
 		out = "Untitled"
 	}
 	return out
+}
+
+func noRobots(w http.ResponseWriter, _ *http.Request) {
+	io.WriteString(w, "User-agent: *\nDisallow: /\n")
 }
 
 func favicon(w http.ResponseWriter, _ *http.Request) {
