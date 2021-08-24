@@ -37,11 +37,7 @@ body {
     padding-right: 1em;
     padding-left: 1em;
 }
-code, pre {
-    background-color: var(--main-bg-accent-color);
-}
 pre {
-    padding: 1ex 1ch;
     white-space: pre-wrap;
 }
 p, ul, ol {line-height: 1.5;}

@@ -182,9 +182,10 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageTemplate.Execute(w, struct {
-		Title string
-		Text  template.HTML
-	}{Title: title, Text: template.HTML(buf.String())})
+		Title   string
+		Text    template.HTML
+		HasCode bool
+	}{Title: title, Text: template.HTML(buf.String()), HasCode: bytes.Contains(buf.Bytes(), []byte("<pre><code"))})
 }
 
 func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
