@@ -20,5 +20,9 @@
             </button></form>
         </div>
     </nav>
-    <article>{{.Text}}</article>
+    {{with .Tags}}<nav class="taglist">{{range $index, $tag := . -}}
+        {{- if ne $index 0}},&nbsp;{{end -}}
+        <span class="tagname">{{$tag}}</span>
+        {{- end}}</nav>{{end}}
+    <main>{{.Text}}</main>
 </body>

@@ -67,6 +67,15 @@ pre {
 .buttons form {display: inline-block;}
 .buttons button {border: 0; background-color: transparent;}
 
+nav.taglist {
+    text-align: right;
+}
+span.tagname {
+    font-family: var(--font-sans-serif);
+    font-style: italic;
+}
+span.tagname::before {content: '#';}
+
 :any-link {color: var(--link-color); text-decoration: none;}
 :any-link:hover {text-decoration: underline;}
 

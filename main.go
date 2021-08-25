@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -113,20 +114,28 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func notesIndex(ctx context.Context, db *sql.DB) ([]indexEntry, error) {
-	const query = `SELECT Title, Path, Mtime FROM notes ORDER BY Mtime DESC`
+	const query = `SELECT Title, Path, Mtime, Tags FROM notes ORDER BY Mtime DESC`
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []indexEntry
+	var tagsJson []byte
 	for rows.Next() {
 		var mtimeUnix int64
 		var ent indexEntry
-		if err := rows.Scan(&ent.Title, &ent.Path, &mtimeUnix); err != nil {
+		tagsJson = tagsJson[:0]
+		if err := rows.Scan(&ent.Title, &ent.Path, &mtimeUnix, &tagsJson); err != nil {
 			return nil, err
 		}
 		ent.Mtime = time.Unix(mtimeUnix, 0)
+		if len(tagsJson) != 0 {
+			if err := json.Unmarshal(tagsJson, &ent.Tags); err != nil {
+				// TODO: maybe just ignore?
+				return nil, fmt.Errorf("unmarshaling tags for %q: %w", ent.Path, err)
+			}
+		}
 		out = append(out, ent)
 	}
 	return out, rows.Err()
@@ -135,6 +144,7 @@ func notesIndex(ctx context.Context, db *sql.DB) ([]indexEntry, error) {
 type indexEntry struct {
 	Title, Path string
 	Mtime       time.Time
+	Tags        []string
 }
 
 func (h *handler) editPage(w http.ResponseWriter, r *http.Request) {
@@ -167,8 +177,9 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 	var text, title string
 	var mtime int64
-	const query = `SELECT Title, Text, Mtime FROM notes WHERE Path=@path`
-	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&title, &text, &mtime); err {
+	var tagsJson []byte
+	const query = `SELECT Title, Text, Mtime, Tags FROM notes WHERE Path=@path`
+	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&title, &text, &mtime, &tagsJson); err {
 	case nil:
 	case sql.ErrNoRows:
 		pageNotFound(w, r)
@@ -177,6 +188,12 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("get %q: %v", r.URL, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
+	}
+	var tags []string
+	if len(tagsJson) != 0 {
+		if err := json.Unmarshal(tagsJson, &tags); err != nil {
+			log.Printf("unmarshaling %q tags %q: %v", r.URL, tagsJson, err)
+		}
 	}
 	buf := new(bytes.Buffer)
 	if err := markdown.Convert([]byte(text), buf); err != nil {
@@ -189,7 +206,13 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		Title   string
 		Text    template.HTML
 		HasCode bool
-	}{Title: title, Text: template.HTML(buf.String()), HasCode: bytes.Contains(buf.Bytes(), []byte("<pre><code"))})
+		Tags    []string
+	}{
+		Title:   title,
+		Text:    template.HTML(buf.String()),
+		HasCode: bytes.Contains(buf.Bytes(), []byte("<pre><code")),
+		Tags:    tags,
+	})
 }
 
 func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
@@ -224,12 +247,21 @@ func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	text = crlf.Replace(text)
-	const query = `INSERT INTO notes(Path,Title,Text) VALUES(@path,@title,@text)
-	ON CONFLICT(Path) DO UPDATE SET Title=excluded.Title, Text=excluded.Text, Mtime=excluded.Mtime`
+	tags := noteTags(text)
+	var tagsJson []byte
+	if len(tags) != 0 {
+		var err error
+		if tagsJson, err = json.Marshal(tags); err != nil {
+			panic(err)
+		}
+	}
+	const query = `INSERT INTO notes(Path,Title,Text,Tags) VALUES(@path,@title,@text,@tags)
+	ON CONFLICT(Path) DO UPDATE SET Title=excluded.Title, Text=excluded.Text, Mtime=excluded.Mtime, Tags=excluded.Tags`
 	_, err := h.db.ExecContext(r.Context(), query,
 		sql.Named("path", p),
 		sql.Named("title", textTitle(text)),
 		sql.Named("text", text),
+		sql.Named("tags", tagsJson),
 	)
 	if err != nil {
 		log.Printf("updating %q: %v", p, err)
@@ -252,7 +284,8 @@ func initSchema(ctx context.Context, db *sql.DB) error {
 			Title TEXT NOT NULL,
 			Text TEXT NOT NULL,
 			Ctime INT NOT NULL DEFAULT (strftime('%s','now')), -- unix timestamp of time created
-			Mtime INT NOT NULL DEFAULT (strftime('%s','now'))  -- unix timestamp of time updated
+			Mtime INT NOT NULL DEFAULT (strftime('%s','now')), -- unix timestamp of time updated
+			Tags TEXT check(Tags is NULL OR(json_valid(Tags) AND json_type(Tags)='array'))
 		)`,
 		`CREATE INDEX IF NOT EXISTS notesMtime ON notes(Mtime DESC)`,
 	} {
@@ -301,6 +334,42 @@ func pageNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNotFound)
 	page404Template.Execute(w, r.URL.Path)
+}
+
+func noteTags(text string) []string {
+	const prefix = `<!--`
+	const suffix = `-->`
+	i := strings.Index(text, prefix)
+	if i == -1 {
+		return nil
+	}
+	start := i + len(prefix)
+	end := strings.Index(text, suffix)
+	if end == -1 || end < start {
+		return nil
+	}
+	snippet := text[start:end]
+	const tagsWord = "Tags:"
+	if i = strings.Index(snippet, tagsWord); i == -1 {
+		return nil
+	}
+	snippet = snippet[i+len(tagsWord):]
+	if i = strings.Index(snippet, "\n"); i != -1 {
+		snippet = snippet[:i]
+	}
+	ss := strings.Split(snippet, ",")
+	if len(ss) == 0 {
+		return nil
+	}
+	out := ss[:0]
+	for _, s := range ss {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		out = append(out, s)
+	}
+	return out[:len(out):len(out)]
 }
 
 func init() {

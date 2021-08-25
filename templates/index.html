@@ -5,6 +5,10 @@
 <body>
     <h1>Index</h1>
     <ul>{{range . -}}
-        <li><a href="/{{.Path}}">{{.Title}}</a> (updated at {{.Mtime.Format "2006-01-02 15:04"}})</li>
+        <li><a href="/{{.Path}}">{{.Title}}</a> {{with .Tags -}}
+            {{range $index, $tag := . -}}
+        {{- if ne $index 0}},&nbsp;{{end -}}
+        <span class="tagname">{{$tag}}</span>
+        {{- end}}{{- end}} (updated at {{.Mtime.Format "2006-01-02 15:04"}})</li>
     {{end}}</ul>
 </body>
