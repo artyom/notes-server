@@ -9,6 +9,7 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -32,15 +33,26 @@ func main() {
 	log.SetFlags(0)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	if err := run(ctx); err != nil {
+	args := runArgs{
+		addr:     "localhost:8080",
+		database: "notes.sqlite",
+	}
+	flag.StringVar(&args.addr, "addr", args.addr, "address to listen")
+	flag.StringVar(&args.database, "db", args.database, "`path` to the database")
+	flag.Parse()
+	if err := run(ctx, args); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(ctx context.Context) error {
+type runArgs struct {
+	addr, database string
+}
+
+func run(ctx context.Context, args runArgs) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	db, err := sql.Open("sqlite", "notes.sqlite")
+	db, err := sql.Open("sqlite", args.database)
 	if err != nil {
 		return err
 	}
@@ -60,7 +72,7 @@ func run(ctx context.Context) error {
 	mux.Handle("/.assets/", http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))))
 	mux.Handle("/.assets/monaco/", http.StripPrefix("/.assets/monaco/", http.FileServer(http.FS(monacoBundleFS))))
 	srv := &http.Server{
-		Addr:    "localhost:8080",
+		Addr:    args.addr,
 		Handler: mux,
 	}
 	log.Printf("serving at http://%s/", srv.Addr)
