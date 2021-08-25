@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap');
 
+* {color-scheme: light dark;}
+
 :root {
     --font-serif: 'IBM Plex Serif', 'Georgia', Times, serif;
     --font-sans-serif: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
@@ -60,9 +62,9 @@ pre {
 }
 .buttons {
     width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-flow: row ;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 .buttons form {display: inline-block;}
 .buttons button {border: 0; background-color: transparent;}
@@ -87,4 +89,8 @@ span.tagname::before {content: '#';}
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
+}
+
+.search-snippet {
+    font-family: var(--font-sans-serif);
 }

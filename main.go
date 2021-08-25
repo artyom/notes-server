@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -100,6 +101,19 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
+	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
+		entries, err := searchNotes(r.Context(), h.db, q)
+		if err != nil && err != sql.ErrNoRows {
+			log.Printf("search for %q: %v", q, err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		searchResultsTemplate.Execute(w, struct {
+			Term    string
+			Results []indexEntry
+		}{Term: q, Results: entries})
+		return
+	}
 	entries, err := notesIndex(r.Context(), h.db)
 	if err != nil {
 		log.Printf("index: %v", err)
@@ -111,6 +125,33 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	indexTemplate.Execute(w, entries)
+}
+
+func searchNotes(ctx context.Context, db *sql.DB, term string) ([]indexEntry, error) {
+	if term == "" {
+		return nil, errors.New("empty search term")
+	}
+	const query = `SELECT Title, Path, Tags, snippet(notes_fts, 2, '<mark>', '</mark>', '...', 20)
+		FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank;`
+	rows, err := db.QueryContext(ctx, query, term)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []indexEntry
+	var tagsJson []byte
+	for rows.Next() {
+		var ent indexEntry
+		tagsJson = tagsJson[:0]
+		if err := rows.Scan(&ent.Title, &ent.Path, &tagsJson, &ent.Snippet); err != nil {
+			return nil, err
+		}
+		if len(tagsJson) != 0 {
+			_ = json.Unmarshal(tagsJson, &ent.Tags)
+		}
+		out = append(out, ent)
+	}
+	return out, rows.Err()
 }
 
 func notesIndex(ctx context.Context, db *sql.DB) ([]indexEntry, error) {
@@ -143,6 +184,7 @@ func notesIndex(ctx context.Context, db *sql.DB) ([]indexEntry, error) {
 
 type indexEntry struct {
 	Title, Path string
+	Snippet     template.HTML
 	Mtime       time.Time
 	Tags        []string
 }
@@ -288,6 +330,22 @@ func initSchema(ctx context.Context, db *sql.DB) error {
 			Tags TEXT check(Tags is NULL OR(json_valid(Tags) AND json_type(Tags)='array'))
 		)`,
 		`CREATE INDEX IF NOT EXISTS notesMtime ON notes(Mtime DESC)`,
+		// full text search-related
+		`CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(Path, Title, 'Text', Tags, content=notes)`,
+		`CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+			INSERT INTO notes_fts(rowid, Path, Title, "Text", Tags)
+				VALUES (new.rowid, new.Path, new.Title, new.Text, new.Tags);
+		END`,
+		`CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+			INSERT INTO notes_fts(notes_fts, rowid, Path, Title, "Text", Tags)
+				VALUES ('delete', old.rowid, old.Path, old.Title, old.Text, old.Tags);
+		END`,
+		`CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+			INSERT INTO notes_fts(notes_fts, rowid, Path, Title, "Text", Tags)
+				VALUES ('delete', old.rowid, old.Path, old.Title, old.Text, old.Tags);
+			INSERT INTO notes_fts(rowid, Path, Title, "Text", Tags)
+				VALUES (new.rowid, new.Path, new.Title, new.Text, new.Tags);
+		END`,
 	} {
 		if _, err := db.ExecContext(ctx, s); err != nil {
 			return fmt.Errorf("SQL statement %q: %w", s, err)
@@ -391,11 +449,12 @@ var (
 	//go:embed templates
 	templateFS embed.FS
 
-	pageTemplate         = template.Must(template.ParseFS(templateFS, "templates/page.html"))
-	editPageTemplate     = template.Must(template.ParseFS(templateFS, "templates/editPage.html"))
-	richEditPageTemplate = template.Must(template.ParseFS(templateFS, "templates/monaco.html"))
-	indexTemplate        = template.Must(template.ParseFS(templateFS, "templates/index.html"))
-	page404Template      = template.Must(template.ParseFS(templateFS, "templates/404.html"))
+	pageTemplate          = template.Must(template.ParseFS(templateFS, "templates/page.html"))
+	editPageTemplate      = template.Must(template.ParseFS(templateFS, "templates/editPage.html"))
+	richEditPageTemplate  = template.Must(template.ParseFS(templateFS, "templates/monaco.html"))
+	indexTemplate         = template.Must(template.ParseFS(templateFS, "templates/index.html"))
+	searchResultsTemplate = template.Must(template.ParseFS(templateFS, "templates/search-results.html"))
+	page404Template       = template.Must(template.ParseFS(templateFS, "templates/404.html"))
 )
 
 var markdown = goldmark.New(

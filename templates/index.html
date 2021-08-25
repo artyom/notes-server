@@ -3,7 +3,12 @@
     <link rel="stylesheet" href="/.assets/style.css">
 </head>
 <body>
-    <h1>Index</h1>
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Index</h1>
+        <form method="GET" action="/">
+            <input autocomplete="off" name="q" type="search" minlength=3 placeholder="search here">
+        </form>
+    </header>
     <ul>{{range . -}}
         <li><a href="/{{.Path}}">{{.Title}}</a> {{with .Tags -}}
             {{range $index, $tag := . -}}
