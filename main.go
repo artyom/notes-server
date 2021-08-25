@@ -319,22 +319,14 @@ var (
 	monacoBundle   []byte
 	monacoBundleFS *zip.Reader
 
-	//go:embed editPage.html
-	editPageBody string
-	//go:embed page.html
-	pageBody string
-	//go:embed index.html
-	indexBody string
-	//go:embed monaco.html
-	richEditPageBody string
-	//go:embed 404.html
-	page404Body string
+	//go:embed templates
+	templateFS embed.FS
 
-	pageTemplate         = template.Must(template.New("page").Parse(pageBody))
-	editPageTemplate     = template.Must(template.New("edit").Parse(editPageBody))
-	richEditPageTemplate = template.Must(template.New("edit").Parse(richEditPageBody))
-	indexTemplate        = template.Must(template.New("index").Parse(indexBody))
-	page404Template      = template.Must(template.New("404").Parse(page404Body))
+	pageTemplate         = template.Must(template.ParseFS(templateFS, "templates/page.html"))
+	editPageTemplate     = template.Must(template.ParseFS(templateFS, "templates/editPage.html"))
+	richEditPageTemplate = template.Must(template.ParseFS(templateFS, "templates/monaco.html"))
+	indexTemplate        = template.Must(template.ParseFS(templateFS, "templates/index.html"))
+	page404Template      = template.Must(template.ParseFS(templateFS, "templates/404.html"))
 )
 
 var markdown = goldmark.New(
