@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap');
 
-* {color-scheme: light dark;}
+* {
+    color-scheme: light dark;
+    box-sizing: border-box;
+}
 
 :root {
     --font-serif: 'IBM Plex Serif', 'Georgia', Times, serif;
