@@ -6,11 +6,11 @@ import (
 
 func Test_noteTags(t *testing.T) {
 	const text = `
-	<!-- Tags: tag1,  tag2, tag3,	-->
+	<!-- Tags: tag2,tag1,  tag2, tag3,	-->
 	<!--
 		No tags here
 	-->`
-	want := []string{"tag1", "tag2", "tag3"}
+	want := []string{"tag2", "tag1", "tag3"}
 	got := noteTags(text)
 	if len(got) != len(want) {
 		t.Fatalf("got %v, want %v", got, want)

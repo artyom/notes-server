@@ -432,12 +432,17 @@ func noteTags(text string) []string {
 		return nil
 	}
 	out := ss[:0]
+	seen := make(map[string]struct{})
 	for _, s := range ss {
 		s = strings.TrimSpace(s)
 		if s == "" {
 			continue
 		}
+		if _, ok := seen[s]; ok {
+			continue
+		}
 		out = append(out, s)
+		seen[s] = struct{}{}
 	}
 	return out[:len(out):len(out)]
 }
