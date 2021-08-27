@@ -1,11 +1,9 @@
 <!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
     <meta name="referrer" content="same-origin">
     <link rel="stylesheet" href="/.assets/style.css">{{if .HasCode}}
-    <style>
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/foundation.min.css') screen and (prefers-color-scheme: light);
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/base16/ashes.min.css') screen and (prefers-color-scheme: dark);
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+    <link rel="stylesheet" media="screen and (prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/base16/ashes.min.css" integrity="sha512-u1kPr5HFUHT0iyW5J7d6jOGsSIRVw9Ln8OMmPZDLUAI/unH6vGxYCEZ5b0MB+yjhvP6a+CcbOv7L1v8BfRENmA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" media="screen and (prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/foundation.min.css" integrity="sha512-FdL5OCvSeXvgUsM1YtqlwoVmDemx1qdb+ABFDLmZ0egnFn5Jb1GCME9wIiF1FtCaKVBJtf7cdiZ6WUTdkrO89w==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js" integrity="sha512-MinqHeqca99q5bWxFNQEQpplMBFiUNrEwuuDj2rCSh1DgeeTXUgvgYIHZ1puBS9IKBkdfLMSk/ZWVDasa3Y/2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>hljs.highlightAll();</script>{{end}}
 </head>
 <body>
