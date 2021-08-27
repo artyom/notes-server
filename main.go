@@ -2,7 +2,6 @@
 package main
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"database/sql"
@@ -70,7 +69,6 @@ func run(ctx context.Context, args runArgs) error {
 		panic(err)
 	}
 	mux.Handle("/.assets/", http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))))
-	mux.Handle("/.assets/monaco/", http.StripPrefix("/.assets/monaco/", http.FileServer(http.FS(monacoBundleFS))))
 	srv := &http.Server{
 		Addr:    args.addr,
 		Handler: mux,
@@ -447,21 +445,9 @@ func noteTags(text string) []string {
 	return out[:len(out):len(out)]
 }
 
-func init() {
-	var err error
-	monacoBundleFS, err = zip.NewReader(bytes.NewReader(monacoBundle), int64(len(monacoBundle)))
-	if err != nil {
-		panic(err)
-	}
-}
-
 var (
 	//go:embed assets
 	assetsFS embed.FS
-
-	//go:embed monaco-minimal.zip
-	monacoBundle   []byte
-	monacoBundleFS *zip.Reader
 
 	//go:embed templates
 	templateFS embed.FS
