@@ -17,6 +17,8 @@
         --main-bg-accent-color: #f4f4f4;
         --main-text-color: black;
         --link-color: rgb(3, 102, 214);
+        --table-border-color: #d0d7de;
+        --table-alt-color: #f6f8fa;
     }
 }
 
@@ -26,6 +28,8 @@
         --main-bg-accent-color: rgb(45,51,59);
         --main-text-color: rgb(173, 186, 199);
         --link-color: rgb(83, 155, 245);
+        --table-border-color: #444444;
+        --table-alt-color: #2d333b;
     }
 }
 
@@ -96,4 +100,20 @@ span.tagname::before {content: '#';}
 
 .search-snippet {
     font-family: var(--font-sans-serif);
+}
+table {
+    font-family: var(--font-sans-serif);
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+thead {
+    text-align: center;
+    font-weight: 600;
+}
+th, td {
+    padding: 6px 13px;
+    border: 1px solid var(--table-border-color);
+}
+tr:nth-child(2n) {
+    background-color: var(--table-alt-color);
 }
