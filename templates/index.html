@@ -24,7 +24,7 @@
         <li><a href="/{{.Path}}">{{.Title}}</a> {{with .Tags -}}
             {{range $index, $tag := . -}}
         {{- if ne $index 0}},&nbsp;{{end -}}
-        <span class="tagname">{{$tag}}</span>
+        <a href="/?q=Tags:{{$tag}}" class="tagname" title="Search for all entries with this tag">{{$tag}}</a>
         {{- end}}{{- end}} (updated at {{.Mtime.Format "2006-01-02 15:04"}})</li>
     {{end}}</ul>
 {{- else -}}

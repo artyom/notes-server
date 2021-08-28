@@ -25,6 +25,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"modernc.org/sqlite"
 	_ "modernc.org/sqlite"
 )
 
@@ -114,6 +115,11 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
 		entries, err := searchNotes(r.Context(), h.db, q)
 		if err != nil && err != sql.ErrNoRows {
+			var se *sqlite.Error
+			if errors.As(err, &se) && se.Code() == 1 {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
 			log.Printf("search for %q: %v", q, err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

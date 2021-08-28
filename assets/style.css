@@ -79,11 +79,12 @@ pre {
 nav.taglist {
     text-align: right;
 }
-span.tagname {
+.tagname {
     font-family: var(--font-sans-serif);
     font-style: italic;
 }
-span.tagname::before {content: '#';}
+.tagname::before {content: '#';}
+a.tagname {color: var(--main-text-color);}
 
 :any-link {color: var(--link-color); text-decoration: none;}
 :any-link:hover {text-decoration: underline;}
