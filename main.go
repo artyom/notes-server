@@ -63,6 +63,8 @@ func run(ctx context.Context, args runArgs) error {
 	h := &handler{db: db}
 	mux := http.NewServeMux()
 	mux.Handle("/", h)
+	mux.Handle("/.files/", http.FileServer(http.FS(h)))
+	mux.HandleFunc("/.files", http.HandlerFunc(h.uploadFile))
 	mux.HandleFunc("/robots.txt", http.HandlerFunc(noRobots))
 	mux.HandleFunc("/favicon.ico", http.HandlerFunc(favicon))
 	afs, err := fs.Sub(assetsFS, "assets")
@@ -362,6 +364,12 @@ func initSchema(ctx context.Context, db *sql.DB) error {
 			INSERT INTO notes_fts(rowid, Path, Title, "Text", Tags)
 				VALUES (new.rowid, new.Path, new.Title, new.Text, new.Tags);
 		END`,
+		// file uploads (temporary, to be later offloaded to S3)
+		`CREATE TABLE IF NOT EXISTS files(
+			Path TEXT PRIMARY KEY NOT NULL,
+			Bytes BLOB NOT NULL,
+			Ctime INT NOT NULL DEFAULT (strftime('%s','now')) -- unix timestamp of time created
+		)`,
 	} {
 		if _, err := db.ExecContext(ctx, s); err != nil {
 			return fmt.Errorf("SQL statement %q: %w", s, err)

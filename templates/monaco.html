@@ -6,7 +6,7 @@
 </head>
 <body>
     <form method="POST" id="MyForm">
-        <div id="editor"></div>
+        <div id="editor" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);"></div>
         <input required type="hidden" id="text" name="text">
         <!-- <input type="submit" value="Save" id="submitButton" onclick="save()"> -->
     </form>
@@ -55,11 +55,45 @@
         resizeObserver.observe(divElem);
     });
 
-    // function save() {
-    //     var value = window.editor.getValue()
-    //     var inp = document.getElementById('text');
-    //     inp.value = value;
-    // };
+    function uploadCallback() {
+        if (this.status != 200) {
+            console.log('upload status: '+this.status);
+            alert('Upload failed, status: '+this.statusText);
+            return
+        }
 
+        var selection = window.editor.getSelection();
+        var id = { major: 1, minor: 1 };
+        var text = this.response.URL;
+        var op = {identifier: id, range: selection, text: text, forceMoveMarkers: true};
+        window.editor.executeEdits("upload", [op]);
+    }
+
+    function dropHandler(ev) {
+        ev.preventDefault();
+        if (ev.dataTransfer.items.length != 1) {
+            alert('only single file drops supported');
+            return
+        }
+        // If dropped items aren't files, reject them
+        if (ev.dataTransfer.items[0].kind !== 'file') {
+            return
+        }
+        var file = ev.dataTransfer.items[0].getAsFile();
+
+        var formData = new FormData();
+        formData.append("file", file);
+        var req = new XMLHttpRequest();
+        req.timeout = 60000; // milliseconds
+        req.responseType = "json";
+        req.onload = uploadCallback;
+        req.open("POST", "/.files");
+        req.send(formData);
+    }
+
+    function dragOverHandler(ev) {
+        // Prevent default behavior (Prevent file from being opened)
+        ev.preventDefault();
+    }
 </script>
 </body>

@@ -118,3 +118,7 @@ th, td {
 tr:nth-child(2n) {
     background-color: var(--table-alt-color);
 }
+main img {
+    display: block;
+    max-width: 100%;
+}
