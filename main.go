@@ -227,7 +227,10 @@ func (h *handler) editPage(w http.ResponseWriter, r *http.Request) {
 	if text == "" {
 		text = "# Page title\n\nPut your text here, save with Cmd-s.\n"
 	}
-	// editPageTemplate.Execute(w, struct{ Text string }{Text: text})
+	if r.URL.RawQuery == "edit=basic" {
+		editPageTemplate.Execute(w, struct{ Text string }{Text: text})
+		return
+	}
 	richEditPageTemplate.Execute(w, struct{ Text string }{Text: text})
 }
 
