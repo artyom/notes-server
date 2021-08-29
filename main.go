@@ -149,7 +149,7 @@ func searchNotes(ctx context.Context, db *sql.DB, term string) ([]indexEntry, er
 	if term == "" {
 		return nil, errors.New("empty search term")
 	}
-	const query = `SELECT Title, Path, Tags, snippet(notes_fts, 2, '<mark>', '</mark>', '...', 20)
+	const query = `SELECT Title, Path, Tags, snippet(notes_fts, 2, '<ftsMark>', '</ftsMark>', '...', 20)
 		FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank;`
 	rows, err := db.QueryContext(ctx, query, term)
 	if err != nil {
@@ -160,13 +160,15 @@ func searchNotes(ctx context.Context, db *sql.DB, term string) ([]indexEntry, er
 	var tagsJson []byte
 	for rows.Next() {
 		var ent indexEntry
+		var snippet string
 		tagsJson = tagsJson[:0]
-		if err := rows.Scan(&ent.Title, &ent.Path, &tagsJson, &ent.Snippet); err != nil {
+		if err := rows.Scan(&ent.Title, &ent.Path, &tagsJson, &snippet); err != nil {
 			return nil, err
 		}
 		if len(tagsJson) != 0 {
 			_ = json.Unmarshal(tagsJson, &ent.Tags)
 		}
+		ent.Snippet = template.HTML(htmlEscaper.Replace(snippet))
 		out = append(out, ent)
 	}
 	return out, rows.Err()
@@ -480,3 +482,16 @@ var markdown = goldmark.New(
 )
 
 var crlf = strings.NewReplacer("\r\n", "\n")
+
+// htmlEscaper is a copy of a non-exported html.htmlEscaper backing
+// html.EscapeString with the addition of two exceptions for the <mark> element
+// tags coming from sqlite FTS snippet() function.
+var htmlEscaper = strings.NewReplacer(
+	`<ftsMark>`, `<mark>`,
+	`</ftsMark>`, `</mark>`,
+	`&`, "&amp;",
+	`'`, "&#39;", // "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
+	`<`, "&lt;",
+	`>`, "&gt;",
+	`"`, "&#34;", // "&#34;" is shorter than "&quot;".
+)
