@@ -123,3 +123,10 @@ main img {
     display: block;
     max-width: 100%;
 }
+
+hr {border:none; text-align:center;}
+hr:after {
+	content:"\2766";
+	display:inline-block;
+	font-size:1.5rem;
+}
