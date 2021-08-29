@@ -25,7 +25,7 @@
             {{range $index, $tag := . -}}
         {{- if ne $index 0}},&nbsp;{{end -}}
         <a href="/?q=Tags:{{$tag}}" class="tagname" title="Search for all entries with this tag">{{$tag}}</a>
-        {{- end}}{{- end}} (updated at {{.Mtime.Format "2006-01-02 15:04"}})</li>
+        {{- end}}{{- end}}</li>
     {{end}}</ul>
 {{- else -}}
     <main>
