@@ -165,10 +165,6 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 	entries, err := notesIndex(r.Context(), h.stNotesIndex)
 	if err != nil {
 		log.Printf("index: %v", err)
-		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
-			return
-		}
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
