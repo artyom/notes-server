@@ -103,7 +103,19 @@ func (f *uploadFile) Close() error {
 	return nil
 }
 
-func (h *handler) Open(name string) (fs.File, error) {
+type uploadsFS struct {
+	stmt *sql.Stmt
+}
+
+func newUploadsFS(db *sql.DB) uploadsFS {
+	st, err := db.Prepare(`SELECT Ctime, Bytes FROM files WHERE Path=@path`)
+	if err != nil {
+		panic("newUploadsFS, st prepare: " + err.Error())
+	}
+	return uploadsFS{st}
+}
+
+func (fsys uploadsFS) Open(name string) (fs.File, error) {
 	if !fs.ValidPath(name) {
 		return nil, &fs.PathError{
 			Op:   "open",
@@ -113,8 +125,7 @@ func (h *handler) Open(name string) (fs.File, error) {
 	}
 	var cTime int64
 	var body []byte
-	const query = `SELECT Ctime, Bytes FROM files WHERE Path=@path`
-	if err := h.db.QueryRow(query, sql.Named("path", name)).Scan(&cTime, &body); err != nil {
+	if err := fsys.stmt.QueryRow(sql.Named("path", name)).Scan(&cTime, &body); err != nil {
 		if err == sql.ErrNoRows {
 			err = fs.ErrNotExist
 		}

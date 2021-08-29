@@ -63,7 +63,7 @@ func run(ctx context.Context, args runArgs) error {
 	h := &handler{db: db}
 	mux := http.NewServeMux()
 	mux.Handle("/", h)
-	mux.Handle("/.files/", http.FileServer(http.FS(h)))
+	mux.Handle("/.files/", http.FileServer(http.FS(newUploadsFS(db))))
 	mux.HandleFunc("/.files", http.HandlerFunc(h.uploadFile))
 	mux.HandleFunc("/robots.txt", http.HandlerFunc(noRobots))
 	mux.HandleFunc("/favicon.ico", http.HandlerFunc(favicon))
