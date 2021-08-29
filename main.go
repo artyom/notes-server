@@ -40,7 +40,7 @@ func main() {
 	flag.StringVar(&args.addr, "addr", args.addr, "address to listen")
 	flag.StringVar(&args.database, "db", args.database, "`path` to the database")
 	flag.Parse()
-	if err := run(ctx, args); err != nil {
+	if err := run(ctx, args); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
