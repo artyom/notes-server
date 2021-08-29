@@ -95,6 +95,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodGet && r.URL.Path == "/" {
 		h.renderIndex(w, r)
 		return
