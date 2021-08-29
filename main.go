@@ -78,6 +78,7 @@ func run(ctx context.Context, args runArgs) error {
 	}
 	log.Printf("serving at http://%s/", srv.Addr)
 	go func() { <-ctx.Done(); srv.Shutdown(ctx) }()
+	defer db.Exec(`PRAGMA optimize`)
 	return srv.ListenAndServe()
 }
 
