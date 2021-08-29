@@ -18,7 +18,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -26,7 +25,6 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"modernc.org/sqlite"
-	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -83,8 +81,7 @@ func run(ctx context.Context, args runArgs) error {
 }
 
 type handler struct {
-	db   *sql.DB
-	once sync.Once
+	db *sql.DB
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -333,10 +330,6 @@ func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-}
-
-func (h *handler) init() {
-	// TODO
 }
 
 func initSchema(ctx context.Context, db *sql.DB) error {
