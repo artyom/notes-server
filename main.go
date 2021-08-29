@@ -24,6 +24,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer/html"
 	"modernc.org/sqlite"
 )
 
@@ -474,6 +475,7 @@ var (
 )
 
 var markdown = goldmark.New(
+	goldmark.WithRendererOptions(html.WithUnsafe()),
 	goldmark.WithExtensions(extension.GFM),
 	goldmark.WithParserOptions(parser.WithAutoHeadingID()),
 )
