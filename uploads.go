@@ -23,6 +23,14 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
+	var notePath string
+	if docURL, err := url.Parse(r.FormValue("document")); err != nil ||
+		docURL.Path == "" || docURL.Path == "/" || docURL.Path == "." || !fs.ValidPath(docURL.Path[1:]) {
+		http.Error(w, "Invalid 'document' form field", http.StatusBadRequest)
+		return
+	} else {
+		notePath = docURL.Path[1:]
+	}
 	const sizeLimit = 10 << 20
 	r.Body = http.MaxBytesReader(w, r.Body, sizeLimit)
 	f, hdr, err := r.FormFile("file")
@@ -47,8 +55,12 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fPath := path.Join(".files", fmt.Sprintf("%x", sha1.Sum(buf)), filename)
-	const query = `INSERT OR IGNORE INTO files(Path,Bytes) VALUES(@path,@bytes)`
-	_, err = h.db.ExecContext(r.Context(), query, sql.Named("path", fPath), sql.Named("bytes", buf))
+	const query = `INSERT OR IGNORE INTO files(Path,Bytes,NotePath) VALUES(@path,@bytes,@notepath)`
+	_, err = h.db.ExecContext(r.Context(), query,
+		sql.Named("path", fPath),
+		sql.Named("bytes", buf),
+		sql.Named("notepath", notePath),
+	)
 	if err != nil {
 		log.Printf("storing file: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

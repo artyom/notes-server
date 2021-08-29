@@ -341,6 +341,7 @@ func initSchema(ctx context.Context, db *sql.DB) error {
 	for _, s := range [...]string{
 		`PRAGMA journal_mode=WAL`,
 		`PRAGMA synchronous=normal`,
+		`PRAGMA foreign_keys=ON`,
 		`CREATE TABLE IF NOT EXISTS notes(
 			Path TEXT PRIMARY KEY NOT NULL,
 			Title TEXT NOT NULL,
@@ -370,7 +371,8 @@ func initSchema(ctx context.Context, db *sql.DB) error {
 		`CREATE TABLE IF NOT EXISTS files(
 			Path TEXT PRIMARY KEY NOT NULL,
 			Bytes BLOB NOT NULL,
-			Ctime INT NOT NULL DEFAULT (strftime('%s','now')) -- unix timestamp of time created
+			Ctime INT NOT NULL DEFAULT (strftime('%s','now')), -- unix timestamp of time created
+			NotePath TEXT NOT NULL REFERENCES notes(Path) ON DELETE CASCADE
 		)`,
 	} {
 		if _, err := db.ExecContext(ctx, s); err != nil {

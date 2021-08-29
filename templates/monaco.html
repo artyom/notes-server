@@ -82,6 +82,7 @@
         var file = ev.dataTransfer.items[0].getAsFile();
 
         var formData = new FormData();
+        formData.append("document", document.URL);
         formData.append("file", file);
         var req = new XMLHttpRequest();
         req.timeout = 60000; // milliseconds
