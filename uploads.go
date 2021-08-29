@@ -55,8 +55,7 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fPath := path.Join(".files", fmt.Sprintf("%x", sha1.Sum(buf)), filename)
-	const query = `INSERT OR IGNORE INTO files(Path,Bytes,NotePath) VALUES(@path,@bytes,@notepath)`
-	_, err = h.db.ExecContext(r.Context(), query,
+	_, err = h.stUploadFile.ExecContext(r.Context(),
 		sql.Named("path", fPath),
 		sql.Named("bytes", buf),
 		sql.Named("notepath", notePath),
@@ -120,11 +119,7 @@ type uploadsFS struct {
 }
 
 func newUploadsFS(db *sql.DB) uploadsFS {
-	st, err := db.Prepare(`SELECT Ctime, Bytes FROM files WHERE Path=@path`)
-	if err != nil {
-		panic("newUploadsFS, st prepare: " + err.Error())
-	}
-	return uploadsFS{st}
+	return uploadsFS{stmt: mustPrepare(db, `SELECT Ctime, Bytes FROM files WHERE Path=@path`)}
 }
 
 func (fsys uploadsFS) Open(name string) (fs.File, error) {

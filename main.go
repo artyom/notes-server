@@ -59,7 +59,7 @@ func run(ctx context.Context, args runArgs) error {
 	if err := initSchema(ctx, db); err != nil {
 		return err
 	}
-	h := &handler{db: db}
+	h := newHandler(db)
 	mux := http.NewServeMux()
 	mux.Handle("/", h)
 	mux.Handle("/.files/", http.FileServer(http.FS(newUploadsFS(db))))
@@ -82,7 +82,37 @@ func run(ctx context.Context, args runArgs) error {
 }
 
 type handler struct {
-	db *sql.DB
+	stSearchNotes *sql.Stmt
+	stNotesIndex  *sql.Stmt
+	stEditPage    *sql.Stmt
+	stRenderPage  *sql.Stmt
+	stDeletePage  *sql.Stmt
+	stSavePage    *sql.Stmt
+	stUploadFile  *sql.Stmt
+}
+
+func newHandler(db *sql.DB) *handler {
+	return &handler{
+		stSearchNotes: mustPrepare(db, `SELECT Title, Path, Tags, snippet(notes_fts, 2, '<ftsMark>', '</ftsMark>', '...', 20)
+			FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank;`),
+		stNotesIndex: mustPrepare(db, `SELECT Title, Path, Mtime, Tags FROM notes ORDER BY Mtime DESC`),
+		stEditPage:   mustPrepare(db, `SELECT Text FROM notes WHERE Path=@path`),
+		stRenderPage: mustPrepare(db, `SELECT Title, Text, Mtime, Tags FROM notes WHERE Path=@path`),
+		stDeletePage: mustPrepare(db, `DELETE FROM notes WHERE Path=@path`),
+		stSavePage: mustPrepare(db, `INSERT INTO notes(Path,Title,Text,Tags)
+			VALUES(@path,@title,@text,@tags)
+			ON CONFLICT(Path) DO UPDATE
+			SET Title=excluded.Title, Text=excluded.Text, Mtime=excluded.Mtime, Tags=excluded.Tags`),
+		stUploadFile: mustPrepare(db, `INSERT OR IGNORE INTO files(Path,Bytes,NotePath) VALUES(@path,@bytes,@notepath)`),
+	}
+}
+
+func mustPrepare(db *sql.DB, statement string) *sql.Stmt {
+	st, err := db.Prepare(statement)
+	if err != nil {
+		panic(err)
+	}
+	return st
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +145,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
-		entries, err := searchNotes(r.Context(), h.db, q)
+		entries, err := searchNotes(r.Context(), h.stSearchNotes, q)
 		if err != nil && err != sql.ErrNoRows {
 			var se *sqlite.Error
 			if errors.As(err, &se) && se.Code() == 1 {
@@ -132,7 +162,7 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 		}{Term: q, Results: entries})
 		return
 	}
-	entries, err := notesIndex(r.Context(), h.db)
+	entries, err := notesIndex(r.Context(), h.stNotesIndex)
 	if err != nil {
 		log.Printf("index: %v", err)
 		if err == sql.ErrNoRows {
@@ -145,13 +175,11 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 	indexTemplate.Execute(w, entries)
 }
 
-func searchNotes(ctx context.Context, db *sql.DB, term string) ([]indexEntry, error) {
+func searchNotes(ctx context.Context, stmt *sql.Stmt, term string) ([]indexEntry, error) {
 	if term == "" {
 		return nil, errors.New("empty search term")
 	}
-	const query = `SELECT Title, Path, Tags, snippet(notes_fts, 2, '<ftsMark>', '</ftsMark>', '...', 20)
-		FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank;`
-	rows, err := db.QueryContext(ctx, query, term)
+	rows, err := stmt.QueryContext(ctx, term)
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +202,8 @@ func searchNotes(ctx context.Context, db *sql.DB, term string) ([]indexEntry, er
 	return out, rows.Err()
 }
 
-func notesIndex(ctx context.Context, db *sql.DB) ([]indexEntry, error) {
-	const query = `SELECT Title, Path, Mtime, Tags FROM notes ORDER BY Mtime DESC`
-	rows, err := db.QueryContext(ctx, query)
+func notesIndex(ctx context.Context, stmt *sql.Stmt) ([]indexEntry, error) {
+	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -216,8 +243,7 @@ func (h *handler) editPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var text string
-	const query = `SELECT Text FROM notes WHERE Path=@path`
-	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&text); err {
+	switch err := h.stEditPage.QueryRowContext(r.Context(), sql.Named("path", p)).Scan(&text); err {
 	case nil, sql.ErrNoRows:
 	default:
 		log.Printf("edit %q: %v", r.URL, err)
@@ -243,8 +269,7 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 	var text, title string
 	var mtime int64
 	var tagsJson []byte
-	const query = `SELECT Title, Text, Mtime, Tags FROM notes WHERE Path=@path`
-	switch err := h.db.QueryRowContext(r.Context(), query, sql.Named("path", p)).Scan(&title, &text, &mtime, &tagsJson); err {
+	switch err := h.stRenderPage.QueryRowContext(r.Context(), sql.Named("path", p)).Scan(&title, &text, &mtime, &tagsJson); err {
 	case nil:
 	case sql.ErrNoRows:
 		pageNotFound(w, r)
@@ -291,8 +316,7 @@ func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.PostForm.Get("delete") == "true" {
-		const query = `DELETE FROM notes WHERE Path=@path`
-		_, err := h.db.ExecContext(r.Context(), query, sql.Named("path", p))
+		_, err := h.stDeletePage.ExecContext(r.Context(), sql.Named("path", p))
 		switch err {
 		case nil, sql.ErrNoRows:
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -320,9 +344,7 @@ func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 	}
-	const query = `INSERT INTO notes(Path,Title,Text,Tags) VALUES(@path,@title,@text,@tags)
-	ON CONFLICT(Path) DO UPDATE SET Title=excluded.Title, Text=excluded.Text, Mtime=excluded.Mtime, Tags=excluded.Tags`
-	_, err := h.db.ExecContext(r.Context(), query,
+	_, err := h.stSavePage.ExecContext(r.Context(),
 		sql.Named("path", p),
 		sql.Named("title", textTitle(text)),
 		sql.Named("text", text),
