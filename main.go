@@ -117,6 +117,7 @@ func mustPrepare(db *sql.DB, statement string) *sql.Stmt {
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Frame-Options", "DENY")
 	// log.Printf("%s %s", r.Method, r.URL)
 	switch r.Method {
 	case http.MethodGet, http.MethodPost, http.MethodPut:
