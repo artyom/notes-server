@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -54,7 +54,8 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	fPath := path.Join(".files", fmt.Sprintf("%x", sha1.Sum(buf)), filename)
+	sum := sha1.Sum(buf)
+	fPath := path.Join(".files", base64.RawURLEncoding.EncodeToString(sum[:]), filename)
 	_, err = h.stUploadFile.ExecContext(r.Context(),
 		sql.Named("path", fPath),
 		sql.Named("bytes", buf),
