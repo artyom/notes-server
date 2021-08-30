@@ -21,6 +21,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/artyom/httpgzip"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -73,7 +74,7 @@ func run(ctx context.Context, args runArgs) error {
 	mux.Handle("/.assets/", http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))))
 	srv := &http.Server{
 		Addr:    args.addr,
-		Handler: mux,
+		Handler: httpgzip.New(mux),
 	}
 	log.Printf("serving at http://%s/", srv.Addr)
 	go func() { <-ctx.Done(); srv.Shutdown(ctx) }()

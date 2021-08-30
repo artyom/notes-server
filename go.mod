@@ -3,6 +3,7 @@ module artyom.dev/notes-server
 go 1.17
 
 require (
+	github.com/artyom/httpgzip v1.2.0
 	github.com/yuin/goldmark v1.4.0
 	modernc.org/sqlite v1.12.0
 )

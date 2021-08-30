@@ -1,3 +1,5 @@
+github.com/artyom/httpgzip v1.2.0 h1:lnAnzl9aBzQ8RlCIrXuD96g4EMTMZtMnEd+rv2g8eCs=
+github.com/artyom/httpgzip v1.2.0/go.mod h1:c2zDbGLrTTfxzhCkxl5aqp7+LEAnnAj0Cgtqv1E4LEk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/google/go-cmp v0.5.3 h1:x95R7cp+rSeeqAMI2knLtQ0DKlaBhv2NrtrOvafPHRo=
