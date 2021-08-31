@@ -37,6 +37,9 @@
 blockquote {
     font-family: var(--font-sans-serif);
     font-style: italic;
+    margin: 1rem 0;
+    padding-left: 30px;
+    border-left: 5px solid currentColor;
 }
 
 pre, code {
