@@ -31,7 +31,7 @@
         --table-border-color: #444444;
         --table-alt-color: #2d333b;
     }
-    img.invertible {filter:invert();}
+    img.ink {filter:invert();}
 }
 
 blockquote {
