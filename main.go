@@ -19,10 +19,12 @@ import (
 	"os/signal"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/artyom/httpgzip"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
@@ -284,7 +286,7 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	buf := new(bytes.Buffer)
-	if err := markdown.Convert([]byte(text), buf); err != nil {
+	if err := markdown.Convert([]byte(text), buf, parser.WithContext(parser.NewContext(parser.WithIDs(new(idGenerator))))); err != nil {
 		log.Printf("render %q: %v", r.URL, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -517,3 +519,47 @@ var htmlEscaper = strings.NewReplacer(
 	`>`, "&gt;",
 	`"`, "&#34;", // "&#34;" is shorter than "&quot;".
 )
+
+// idGenerator creates ids for HTML headers
+type idGenerator struct {
+	seen map[string]struct{}
+}
+
+func (g *idGenerator) Generate(value []byte, kind ast.NodeKind) []byte {
+	if kind != ast.KindHeading || len(value) == 0 {
+		return nil
+	}
+	if g.seen == nil {
+		g.seen = make(map[string]struct{})
+	}
+	var anchorName []rune
+	var futureDash = false
+	for _, r := range string(value) {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsNumber(r):
+			if futureDash && len(anchorName) > 0 {
+				anchorName = append(anchorName, '-')
+			}
+			futureDash = false
+			anchorName = append(anchorName, unicode.ToLower(r))
+		default:
+			futureDash = true
+		}
+	}
+	name := string(anchorName)
+	for i := 0; i < 100; i++ {
+		var cand string
+		if i == 0 {
+			cand = name
+		} else {
+			cand = fmt.Sprintf("%s-%d", name, i)
+		}
+		if _, ok := g.seen[cand]; !ok {
+			g.seen[cand] = struct{}{}
+			return []byte(cand)
+		}
+	}
+	return nil
+}
+
+func (g *idGenerator) Put(value []byte) {}
