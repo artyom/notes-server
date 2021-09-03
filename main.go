@@ -28,6 +28,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"golang.org/x/crypto/acme/autocert"
 	"modernc.org/sqlite"
 )
 
@@ -78,9 +79,26 @@ func run(ctx context.Context, args runArgs) error {
 		Addr:    args.addr,
 		Handler: httpgzip.New(mux),
 	}
-	log.Printf("serving at http://%s/", srv.Addr)
+	if strings.HasSuffix(srv.Addr, ":443") {
+		domain, err := knownAcmeDomain(db)
+		if err != nil {
+			return fmt.Errorf("getting domain name for LetsEncrypt: %w", err)
+		}
+		m := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(domain),
+			Cache:      newAutocertCache(db),
+		}
+		srv.TLSConfig = m.TLSConfig()
+		log.Printf("serving at https://%s/", domain)
+	} else {
+		log.Printf("serving at http://%s/", srv.Addr)
+	}
 	go func() { <-ctx.Done(); srv.Shutdown(ctx) }()
 	defer db.Exec(`PRAGMA optimize`)
+	if srv.TLSConfig != nil {
+		return srv.ListenAndServeTLS("", "")
+	}
 	return srv.ListenAndServe()
 }
 
