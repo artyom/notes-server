@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -78,7 +79,7 @@ func run(ctx context.Context, args runArgs) error {
 	mux.Handle("/.assets/", withHeaders(http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))), hdrCC, privateCache))
 	srv := &http.Server{
 		Addr:    args.addr,
-		Handler: httpgzip.New(mux),
+		Handler: nonPublicHandler(httpgzip.New(mux)),
 	}
 	if strings.HasSuffix(srv.Addr, ":443") {
 		domain, err := knownAcmeDomain(db)
@@ -597,5 +598,33 @@ func withHeaders(h http.Handler, headers ...string) http.Handler {
 			hdr.Set(keyVals[i], keyVals[i+1])
 		}
 		h.ServeHTTP(w, r)
+	})
+}
+
+func nonPublicHandler(h http.Handler) http.Handler {
+	_, rfc6598net, err := net.ParseCIDR("100.64.0.0/10")
+	if err != nil {
+		panic(err)
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Printf("nonPublicHandler: getting host from %q: %v", r.RemoteAddr, err)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+		ip := net.ParseIP(host)
+		if ip == nil {
+			log.Printf("nonPublicHandler: cannot parse IP from %q", host)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+		switch {
+		default:
+			log.Printf("nonPublicHandler: refusing request from non-private IP %v", ip)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		case rfc6598net.Contains(ip) || ip.IsLoopback() || ip.IsPrivate():
+			h.ServeHTTP(w, r)
+		}
 	})
 }
