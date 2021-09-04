@@ -134,3 +134,16 @@ hr:after {
 	display:inline-block;
 	font-size:1.5rem;
 }
+
+nav#auto-toc {margin:1rem 0 1rem 0;}
+nav#auto-toc summary {font-weight:bold;font-family: var(--font-sans-serif);}
+
+nav#auto-toc ul {margin:0; list-style:none; padding-left:0;font-family: var(--font-sans-serif);}
+nav#auto-toc ul li.h2 {padding-left:1rem}
+nav#auto-toc ul li.h3 {padding-left:2rem}
+nav#auto-toc ul li.h4 {padding-left:3rem}
+nav#auto-toc ul li.h5 {padding-left:4rem}
+nav#auto-toc ul li.h6 {padding-left:5rem}
+
+summary {cursor:pointer; outline:none}
+summary:only-child {display:none}
