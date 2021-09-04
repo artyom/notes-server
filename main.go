@@ -63,18 +63,19 @@ func run(ctx context.Context, args runArgs) error {
 	if err := initSchema(ctx, db); err != nil {
 		return err
 	}
+	const hdrCC, privateCache = "Cache-Control", "private, max-age=3600"
 	h := newHandler(db)
 	mux := http.NewServeMux()
-	mux.Handle("/", h)
-	mux.Handle("/.files/", http.FileServer(http.FS(newUploadsFS(db))))
-	mux.HandleFunc("/.files", http.HandlerFunc(h.uploadFile))
-	mux.HandleFunc("/robots.txt", http.HandlerFunc(noRobots))
-	mux.HandleFunc("/favicon.ico", http.HandlerFunc(favicon))
+	mux.Handle("/", withHeaders(h, hdrCC, "no-store", "X-Frame-Options", "DENY"))
+	mux.Handle("/.files/", withHeaders(http.FileServer(http.FS(newUploadsFS(db))), hdrCC, privateCache))
+	mux.Handle("/.files", http.HandlerFunc(h.uploadFile))
+	mux.Handle("/robots.txt", http.HandlerFunc(noRobots))
+	mux.Handle("/favicon.ico", withHeaders(http.HandlerFunc(favicon), hdrCC, privateCache))
 	afs, err := fs.Sub(assetsFS, "assets")
 	if err != nil {
 		panic(err)
 	}
-	mux.Handle("/.assets/", http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))))
+	mux.Handle("/.assets/", withHeaders(http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))), hdrCC, privateCache))
 	srv := &http.Server{
 		Addr:    args.addr,
 		Handler: httpgzip.New(mux),
@@ -137,7 +138,6 @@ func mustPrepare(db *sql.DB, statement string) *sql.Stmt {
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("X-Frame-Options", "DENY")
 	// log.Printf("%s %s", r.Method, r.URL)
 	switch r.Method {
 	case http.MethodGet, http.MethodPost, http.MethodPut:
@@ -146,7 +146,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodGet && r.URL.Path == "/" {
 		h.renderIndex(w, r)
 		return
@@ -581,3 +580,22 @@ func (g *idGenerator) Generate(value []byte, kind ast.NodeKind) []byte {
 }
 
 func (g *idGenerator) Put(value []byte) {}
+
+// withHeaders wraps Handler by setting extra response headers, which must have
+// an even count of key, value, key, value, ...
+func withHeaders(h http.Handler, headers ...string) http.Handler {
+	if len(headers) == 0 {
+		return h
+	}
+	if len(headers)%2 != 0 {
+		panic("withHeaders: odd headers count")
+	}
+	keyVals := append([]string(nil), headers...)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hdr := w.Header()
+		for i := 0; i < len(keyVals); i += 2 {
+			hdr.Set(keyVals[i], keyVals[i+1])
+		}
+		h.ServeHTTP(w, r)
+	})
+}
