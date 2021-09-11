@@ -1,4 +1,4 @@
-// TODO describe program
+// notes-server is a HTTP server to handle personal notes.
 package main
 
 import (
