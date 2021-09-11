@@ -1,4 +1,4 @@
-module artyom.dev/notes-server
+module github.com/artyom/notes-server
 
 go 1.17
 
