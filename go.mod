@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.7.0
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.14.0
-	github.com/yuin/goldmark v1.4.0
+	github.com/yuin/goldmark v1.4.1
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	modernc.org/sqlite v1.13.0
