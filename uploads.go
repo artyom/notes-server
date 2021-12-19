@@ -94,7 +94,7 @@ func (fi *uploadFileInfo) Size() int64        { return fi.size }
 func (fi *uploadFileInfo) Mode() fs.FileMode  { return 0444 }
 func (fi *uploadFileInfo) ModTime() time.Time { return time.Unix(fi.ctime, 0) }
 func (fi *uploadFileInfo) IsDir() bool        { return false }
-func (fi *uploadFileInfo) Sys() interface{}   { return nil }
+func (fi *uploadFileInfo) Sys() any           { return nil }
 
 // uploadFile is a fs.File implementation for file uploads read access
 type uploadFile struct {

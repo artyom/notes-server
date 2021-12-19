@@ -14,8 +14,8 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/signal"
 	"strings"
@@ -602,23 +602,15 @@ func withHeaders(h http.Handler, headers ...string) http.Handler {
 }
 
 func nonPublicHandler(h http.Handler) http.Handler {
-	_, rfc6598net, err := net.ParseCIDR("100.64.0.0/10")
-	if err != nil {
-		panic(err)
-	}
+	rfc6598net := netip.MustParsePrefix("100.64.0.0/10")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		addrPort, err := netip.ParseAddrPort(r.RemoteAddr)
 		if err != nil {
 			log.Printf("nonPublicHandler: getting host from %q: %v", r.RemoteAddr, err)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-		ip := net.ParseIP(host)
-		if ip == nil {
-			log.Printf("nonPublicHandler: cannot parse IP from %q", host)
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			return
-		}
+		ip := addrPort.Addr()
 		switch {
 		default:
 			log.Printf("nonPublicHandler: refusing request from non-private IP %v", ip)
