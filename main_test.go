@@ -35,3 +35,18 @@ func Benchmark_noteTags(b *testing.B) {
 }
 
 var sink []string
+
+func Test_slugify(t *testing.T) {
+	for _, tc := range []struct {
+		input, want string
+	}{
+		{"Hello, world", "hello-world"},
+		{"multi    spaces", "multi-spaces"},
+		{"- leading dash", "leading-dash"},
+		{"Anyone there?!", "anyone-there"},
+	} {
+		if got := slugify(tc.input); got != tc.want {
+			t.Fatalf("slugify(%q): got %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}

@@ -29,6 +29,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	gtext "github.com/yuin/goldmark/text"
 	"golang.org/x/crypto/acme/autocert"
 	"modernc.org/sqlite"
 )
@@ -304,7 +305,14 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	buf := new(bytes.Buffer)
-	if err := markdown.Convert([]byte(text), buf, parser.WithContext(parser.NewContext(parser.WithIDs(new(idGenerator))))); err != nil {
+	bodyBytes := []byte(text)
+	doc := markdown.Parser().Parse(gtext.NewReader(bodyBytes))
+	if err := assignHeaderIDs(bodyBytes, doc); err != nil {
+		log.Printf("assignHeaderIDs %q: %v", r.URL, err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	if err := markdown.Renderer().Render(buf, bodyBytes, doc); err != nil {
 		log.Printf("render %q: %v", r.URL, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -538,49 +546,74 @@ var htmlEscaper = strings.NewReplacer(
 	`"`, "&#34;", // "&#34;" is shorter than "&quot;".
 )
 
-// idGenerator creates ids for HTML headers
-type idGenerator struct {
-	seen map[string]struct{}
-}
-
-func (g *idGenerator) Generate(value []byte, kind ast.NodeKind) []byte {
-	if kind != ast.KindHeading || len(value) == 0 {
-		return nil
-	}
-	if g.seen == nil {
-		g.seen = make(map[string]struct{})
-	}
-	var anchorName []rune
-	var futureDash = false
-	for _, r := range string(value) {
-		switch {
-		case unicode.IsLetter(r) || unicode.IsNumber(r):
-			if futureDash && len(anchorName) > 0 {
-				anchorName = append(anchorName, '-')
+func assignHeaderIDs(body []byte, doc ast.Node) error {
+	var seen map[string]struct{} // keeps track of seen slugs to avoid duplicate ids
+	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering || n.Kind() != ast.KindHeading {
+			return ast.WalkContinue, nil
+		}
+		if name := slugify(nodeText(n, body)); name != "" {
+			if seen == nil {
+				seen = make(map[string]struct{})
 			}
-			futureDash = false
-			anchorName = append(anchorName, unicode.ToLower(r))
-		default:
-			futureDash = true
+			for i := 0; i < 100; i++ {
+				var cand string
+				if i == 0 {
+					cand = name
+				} else {
+					cand = fmt.Sprintf("%s-%d", name, i)
+				}
+				if _, ok := seen[cand]; !ok {
+					seen[cand] = struct{}{}
+					n.SetAttributeString("id", []byte(cand))
+					break
+				}
+			}
 		}
+		return ast.WalkContinue, nil
 	}
-	name := string(anchorName)
-	for i := 0; i < 100; i++ {
-		var cand string
-		if i == 0 {
-			cand = name
-		} else {
-			cand = fmt.Sprintf("%s-%d", name, i)
-		}
-		if _, ok := g.seen[cand]; !ok {
-			g.seen[cand] = struct{}{}
-			return []byte(cand)
-		}
-	}
-	return nil
+	return ast.Walk(doc, fn)
 }
 
-func (g *idGenerator) Put(value []byte) {}
+// nodeText walks node and extracts plain text from it and its descendants,
+// effectively removing all markdown syntax
+func nodeText(node ast.Node, src []byte) string {
+	var b strings.Builder
+	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		switch n.Kind() {
+		case ast.KindText:
+			if t, ok := n.(*ast.Text); ok {
+				b.Write(t.Text(src))
+			}
+		}
+		return ast.WalkContinue, nil
+	}
+	if err := ast.Walk(node, fn); err != nil {
+		return ""
+	}
+	return b.String()
+}
+
+func slugify(text string) string {
+	var hasRunes bool
+	var prevDash bool
+	fn := func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
+			hasRunes = true
+			prevDash = false
+			return unicode.ToLower(r)
+		}
+		if hasRunes && !prevDash {
+			prevDash = true
+			return '-'
+		}
+		return -1
+	}
+	return strings.TrimRight(strings.Map(fn, text), "-")
+}
 
 // withHeaders wraps Handler by setting extra response headers, which must have
 // an even count of key, value, key, value, ...
