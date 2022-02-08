@@ -549,7 +549,11 @@ var htmlEscaper = strings.NewReplacer(
 func assignHeaderIDs(body []byte, doc ast.Node) error {
 	var seen map[string]struct{} // keeps track of seen slugs to avoid duplicate ids
 	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering || n.Kind() != ast.KindHeading {
+		kind := n.Kind()
+		if entering && kind == ast.KindParagraph {
+			return ast.WalkSkipChildren, nil
+		}
+		if !entering || kind != ast.KindHeading {
 			return ast.WalkContinue, nil
 		}
 		if name := slugify(nodeText(n, body)); name != "" {
