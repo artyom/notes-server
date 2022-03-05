@@ -307,7 +307,8 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 	buf := new(bytes.Buffer)
 	bodyBytes := []byte(text)
 	doc := markdown.Parser().Parse(gtext.NewReader(bodyBytes))
-	if err := assignHeaderIDs(bodyBytes, doc); err != nil {
+	headers, err := assignHeaderIDs(bodyBytes, doc)
+	if err != nil {
 		log.Printf("assignHeaderIDs %q: %v", r.URL, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -317,13 +318,18 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	if len(text) < 1200 || len(headers) < 2 {
+		headers = nil
+	}
 	w.Header().Set("Last-Modified", time.Unix(mtime, 0).UTC().Format(http.TimeFormat))
 	pageTemplate.Execute(w, struct {
+		TOC     []headingInfo
 		Title   string
 		Text    template.HTML
 		HasCode bool
 		Tags    []string
 	}{
+		TOC:     headers,
 		Title:   title,
 		Text:    template.HTML(buf.String()),
 		HasCode: bytes.Contains(buf.Bytes(), []byte("<pre><code")),
@@ -546,7 +552,13 @@ var htmlEscaper = strings.NewReplacer(
 	`"`, "&#34;", // "&#34;" is shorter than "&quot;".
 )
 
-func assignHeaderIDs(body []byte, doc ast.Node) error {
+type headingInfo struct {
+	Text, Slug string
+	Level      int
+}
+
+func assignHeaderIDs(body []byte, doc ast.Node) ([]headingInfo, error) {
+	var headers []headingInfo
 	var seen map[string]struct{} // keeps track of seen slugs to avoid duplicate ids
 	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		kind := n.Kind()
@@ -556,7 +568,11 @@ func assignHeaderIDs(body []byte, doc ast.Node) error {
 		if !entering || kind != ast.KindHeading {
 			return ast.WalkContinue, nil
 		}
-		if name := slugify(nodeText(n, body)); name != "" {
+		hdr := headingInfo{Text: nodeText(n, body)}
+		if h, ok := n.(*ast.Heading); ok {
+			hdr.Level = h.Level
+		}
+		if name := slugify(hdr.Text); name != "" {
 			if seen == nil {
 				seen = make(map[string]struct{})
 			}
@@ -570,13 +586,18 @@ func assignHeaderIDs(body []byte, doc ast.Node) error {
 				if _, ok := seen[cand]; !ok {
 					seen[cand] = struct{}{}
 					n.SetAttributeString("id", []byte(cand))
+					hdr.Slug = cand
+					headers = append(headers, hdr)
 					break
 				}
 			}
 		}
 		return ast.WalkContinue, nil
 	}
-	return ast.Walk(doc, fn)
+	if err := ast.Walk(doc, fn); err != nil {
+		return nil, err
+	}
+	return headers, nil
 }
 
 // nodeText walks node and extracts plain text from it and its descendants,

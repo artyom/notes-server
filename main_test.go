@@ -2,6 +2,9 @@ package main
 
 import (
 	"testing"
+
+	gtext "github.com/yuin/goldmark/text"
+	"golang.org/x/exp/slices"
 )
 
 func Test_noteTags(t *testing.T) {
@@ -48,5 +51,30 @@ func Test_slugify(t *testing.T) {
 		if got := slugify(tc.input); got != tc.want {
 			t.Fatalf("slugify(%q): got %q, want %q", tc.input, got, tc.want)
 		}
+	}
+}
+
+func Test_assignHeaderIDs(t *testing.T) {
+	const bodyText = `
+# Level One
+
+Text
+
+## Level two
+
+Text
+	`
+	bodyBytes := []byte(bodyText)
+	doc := markdown.Parser().Parse(gtext.NewReader(bodyBytes))
+	headers, err := assignHeaderIDs(bodyBytes, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []headingInfo{
+		{Level: 1, Text: "Level One", Slug: "level-one"},
+		{Level: 2, Text: "Level two", Slug: "level-two"},
+	}
+	if !slices.Equal(headers, want) {
+		t.Fatalf("got headers:\n%+v\nwant:\n%+v", headers, want)
 	}
 }

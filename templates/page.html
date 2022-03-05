@@ -5,25 +5,6 @@
     <link rel="stylesheet" media="screen and (prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/foundation.min.css" integrity="sha512-FdL5OCvSeXvgUsM1YtqlwoVmDemx1qdb+ABFDLmZ0egnFn5Jb1GCME9wIiF1FtCaKVBJtf7cdiZ6WUTdkrO89w==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js" integrity="sha512-IaaKO80nPNs5j+VLxd42eK/7sYuXQmr+fyywCNA0e+C6gtQnuCXNtORe9xR4LqGPz5U9VpH+ff41wKs/ZmC3iA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>hljs.highlightAll();</script>{{end}}
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var headings = [].slice.call(document.body.querySelectorAll('main h1, main h2, main h3, main h4, main h5, main h6'));
-        if (headings.length < 2) { return };
-        var toc = document.querySelector("nav#auto-toc details");
-        var ul = document.createElement( "ul" );
-        headings.forEach(function (heading, index) {
-            var ref = heading.getAttribute( "id" );
-            var link = document.createElement( "a" );
-            link.setAttribute( "href", "#"+ ref );
-            link.textContent = heading.textContent;
-            var li = document.createElement( "li" );
-            li.setAttribute( "class", heading.tagName.toLowerCase() );
-            li.appendChild( link );
-            ul.appendChild( li );
-        });
-        toc.appendChild( ul );
-    } );
-    </script>
 </head>
 <body>
     <nav class="buttons">
@@ -41,6 +22,10 @@
         {{- if ne $index 0}},&nbsp;{{end -}}
         <span class="tagname">{{$tag}}</span>
         {{- end}}</nav>{{end}}
-    <nav id="auto-toc"><details open><summary>Contents</summary></details></nav>
+    <nav id="auto-toc"><details open><summary>Contents</summary>
+    {{if .TOC}}<ul>{{range .TOC}}
+        <li class="h{{.Level}}"><a href="#{{.Slug}}">{{.Text}}</a></li>
+    {{end}}</ul>{{end}}
+    </details></nav>
     <main>{{.Text}}</main>
 </body>
