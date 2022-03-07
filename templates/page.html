@@ -22,10 +22,10 @@
         {{- if ne $index 0}},&nbsp;{{end -}}
         <span class="tagname">{{$tag}}</span>
         {{- end}}</nav>{{end}}
-    <nav id="auto-toc"><details open><summary>Contents</summary>
-    {{if .TOC}}<ul>{{range .TOC}}
+    {{if .TOC}}<nav id="auto-toc"><details open><summary>Contents</summary>
+    <ul>{{range .TOC}}
         <li class="h{{.Level}}"><a href="#{{.Slug}}">{{.Text}}</a></li>
-    {{end}}</ul>{{end}}
-    </details></nav>
+    {{end}}</ul>
+    </details></nav>{{end}}
     <main>{{.Text}}</main>
 </body>
