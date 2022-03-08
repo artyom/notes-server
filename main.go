@@ -20,15 +20,10 @@ import (
 	"os/signal"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/artyom/httpgzip"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer/html"
+	"github.com/artyom/notes-server/internal/markdown"
 	gtext "github.com/yuin/goldmark/text"
 	"golang.org/x/crypto/acme/autocert"
 	"modernc.org/sqlite"
@@ -306,14 +301,14 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 	buf := new(bytes.Buffer)
 	bodyBytes := []byte(text)
-	doc := markdown.Parser().Parse(gtext.NewReader(bodyBytes))
-	headers, err := assignHeaderIDs(bodyBytes, doc)
+	doc := markdown.Markdown.Parser().Parse(gtext.NewReader(bodyBytes))
+	headers, err := markdown.AssignHeaderIDs(bodyBytes, doc)
 	if err != nil {
 		log.Printf("assignHeaderIDs %q: %v", r.URL, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	if err := markdown.Renderer().Render(buf, bodyBytes, doc); err != nil {
+	if err := markdown.Markdown.Renderer().Render(buf, bodyBytes, doc); err != nil {
 		log.Printf("render %q: %v", r.URL, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -323,7 +318,7 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Last-Modified", time.Unix(mtime, 0).UTC().Format(http.TimeFormat))
 	pageTemplate.Execute(w, struct {
-		TOC     []headingInfo
+		TOC     []markdown.HeadingInfo
 		Title   string
 		Text    template.HTML
 		HasCode bool
@@ -531,12 +526,6 @@ var (
 	page404Template       = template.Must(template.ParseFS(templateFS, "templates/404.html"))
 )
 
-var markdown = goldmark.New(
-	goldmark.WithRendererOptions(html.WithUnsafe()),
-	goldmark.WithExtensions(extension.GFM),
-	goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-)
-
 var crlf = strings.NewReplacer("\r\n", "\n")
 
 // htmlEscaper is a copy of a non-exported html.htmlEscaper backing
@@ -551,94 +540,6 @@ var htmlEscaper = strings.NewReplacer(
 	`>`, "&gt;",
 	`"`, "&#34;", // "&#34;" is shorter than "&quot;".
 )
-
-type headingInfo struct {
-	Text, Slug string
-	Level      int
-}
-
-func assignHeaderIDs(body []byte, doc ast.Node) ([]headingInfo, error) {
-	var headers []headingInfo
-	var seen map[string]struct{} // keeps track of seen slugs to avoid duplicate ids
-	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		kind := n.Kind()
-		if entering && kind == ast.KindParagraph {
-			return ast.WalkSkipChildren, nil
-		}
-		if !entering || kind != ast.KindHeading {
-			return ast.WalkContinue, nil
-		}
-		hdr := headingInfo{Text: nodeText(n, body)}
-		if h, ok := n.(*ast.Heading); ok {
-			hdr.Level = h.Level
-		}
-		if name := slugify(hdr.Text); name != "" {
-			if seen == nil {
-				seen = make(map[string]struct{})
-			}
-			for i := 0; i < 100; i++ {
-				var cand string
-				if i == 0 {
-					cand = name
-				} else {
-					cand = fmt.Sprintf("%s-%d", name, i)
-				}
-				if _, ok := seen[cand]; !ok {
-					seen[cand] = struct{}{}
-					n.SetAttributeString("id", []byte(cand))
-					hdr.Slug = cand
-					headers = append(headers, hdr)
-					break
-				}
-			}
-		}
-		return ast.WalkContinue, nil
-	}
-	if err := ast.Walk(doc, fn); err != nil {
-		return nil, err
-	}
-	return headers, nil
-}
-
-// nodeText walks node and extracts plain text from it and its descendants,
-// effectively removing all markdown syntax
-func nodeText(node ast.Node, src []byte) string {
-	var b strings.Builder
-	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
-			return ast.WalkContinue, nil
-		}
-		switch n.Kind() {
-		case ast.KindText:
-			if t, ok := n.(*ast.Text); ok {
-				b.Write(t.Text(src))
-			}
-		}
-		return ast.WalkContinue, nil
-	}
-	if err := ast.Walk(node, fn); err != nil {
-		return ""
-	}
-	return b.String()
-}
-
-func slugify(text string) string {
-	var hasRunes bool
-	var prevDash bool
-	fn := func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) {
-			hasRunes = true
-			prevDash = false
-			return unicode.ToLower(r)
-		}
-		if hasRunes && !prevDash {
-			prevDash = true
-			return '-'
-		}
-		return -1
-	}
-	return strings.TrimRight(strings.Map(fn, text), "-")
-}
 
 // withHeaders wraps Handler by setting extra response headers, which must have
 // an even count of key, value, key, value, ...
