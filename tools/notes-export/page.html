@@ -1,0 +1,14 @@
+<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
+    <meta name="referrer" content="same-origin">
+    <link rel="icon" href="data:,">
+</head><body>
+    <nav><a href="/">Back to index</a></nav>
+    <main>
+    <header>Posted on <time datetime="{{.Mtime.Format "2006-01-02"}}">{{.Mtime.Format "January 2 2006"}}</time></header>
+    {{if .TOC}}<nav id="auto-toc"><details open><summary>Contents</summary>
+        <ul>{{range .TOC}}
+            <li class="h{{.Level}}"><a href="#{{.Slug}}">{{.Text}}</a></li>
+        {{end}}</ul>
+        </details></nav>{{end}}
+    {{.Body}}</main>
+</body>
