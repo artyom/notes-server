@@ -1,6 +1,8 @@
 package markdown
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"strings"
 	"unicode"
@@ -104,4 +106,18 @@ func slugify(text string) string {
 		return -1
 	}
 	return strings.TrimRight(strings.Map(fn, text), "-")
+}
+
+func WordCountAtLeast(text []byte, want int) bool {
+	scanner := bufio.NewScanner(bytes.NewReader(text))
+	scanner.Split(bufio.ScanWords)
+	var cnt int
+	for scanner.Scan() {
+		cnt++
+		if cnt == want {
+			return true
+		}
+	}
+	_ = scanner.Err()
+	return cnt >= want
 }

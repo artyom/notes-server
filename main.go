@@ -313,7 +313,7 @@ func (h *handler) renderPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	if len(text) < 1200 || len(headers) < 2 {
+	if len(headers) < 2 || !markdown.WordCountAtLeast(bodyBytes, 300) {
 		headers = nil
 	}
 	w.Header().Set("Last-Modified", time.Unix(mtime, 0).UTC().Format(http.TimeFormat))
