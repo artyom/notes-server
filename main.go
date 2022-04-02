@@ -67,7 +67,7 @@ func run(ctx context.Context, args runArgs) error {
 	mux.Handle("/.files/", withHeaders(http.FileServer(http.FS(newUploadsFS(db))), hdrCC, privateCache))
 	mux.Handle("/.files", http.HandlerFunc(h.uploadFile))
 	mux.Handle("/robots.txt", http.HandlerFunc(noRobots))
-	mux.Handle("/favicon.ico", withHeaders(http.HandlerFunc(favicon), hdrCC, privateCache))
+	mux.Handle("/favicon.ico", withHeaders(http.NotFoundHandler(), hdrCC, privateCache))
 	afs, err := fs.Sub(assetsFS, "assets")
 	if err != nil {
 		panic(err)
@@ -447,18 +447,6 @@ func textTitle(text string) string {
 
 func noRobots(w http.ResponseWriter, _ *http.Request) {
 	io.WriteString(w, "User-agent: *\nDisallow: /\n")
-}
-
-func favicon(w http.ResponseWriter, _ *http.Request) {
-	f, err := assetsFS.Open("assets/favicon-32x32.png")
-	if err != nil {
-		log.Printf("favicon open: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
-	w.Header().Set("Content-Type", "image/png")
-	io.Copy(w, f)
 }
 
 func pageNotFound(w http.ResponseWriter, r *http.Request) {
