@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"time"
@@ -78,6 +79,31 @@ func run(ctx context.Context, args runArgs) error {
 		return err
 	}
 	db.Close()
+	uploadFile := func(ctx context.Context, r io.Reader, suffix string) error {
+		year, week := time.Now().ISOWeek()
+		objectKey := fmt.Sprintf("%d-%d-%s%s", year, week, filepath.Base(args.DB), suffix)
+		_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+			Bucket:       &args.Bucket,
+			Key:          &objectKey,
+			Body:         r,
+			ACL:          types.ObjectCannedACLPrivate,
+			StorageClass: types.StorageClassStandardIa,
+		})
+		return err
+	}
+	if zstd, err := exec.LookPath("zstd"); err == nil && zstd != "" {
+		if err := exec.CommandContext(ctx, zstd, "--adapt", "--rm", backupFile).Run(); err != nil {
+			log.Printf("compressing backup with zstd binary: %v\nfalling back to built-in gzip", err)
+		} else {
+			const zstSuffix = ".zst"
+			f, err := os.Open(backupFile + zstSuffix)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			return uploadFile(ctx, f, zstSuffix)
+		}
+	}
 	r, w := io.Pipe()
 	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
@@ -95,16 +121,7 @@ func run(ctx context.Context, args runArgs) error {
 	})
 	group.Go(func() error {
 		defer r.Close()
-		year, week := time.Now().ISOWeek()
-		objectKey := fmt.Sprintf("%d-%d-%s.gz", year, week, filepath.Base(args.DB))
-		_, err := uploader.Upload(ctx, &s3.PutObjectInput{
-			Bucket:       &args.Bucket,
-			Key:          &objectKey,
-			Body:         r,
-			ACL:          types.ObjectCannedACLPrivate,
-			StorageClass: types.StorageClassStandardIa,
-		})
-		return err
+		return uploadFile(ctx, r, ".gz")
 	})
 	return group.Wait()
 }
