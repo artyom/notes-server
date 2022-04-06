@@ -4,6 +4,10 @@
     box-sizing: border-box;
 }
 
+@media print {
+    nav.buttons {display:none;}
+}
+
 :root {
     color-scheme: light dark;
     --font-serif: 'IBM Plex Serif', 'Georgia', Times, serif;
