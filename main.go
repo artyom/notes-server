@@ -64,7 +64,6 @@ func run(ctx context.Context, args runArgs) error {
 	h := newHandler(db)
 	mux := http.NewServeMux()
 	mux.Handle("/", withHeaders(h, hdrCC, "no-store", "X-Frame-Options", "DENY"))
-	mux.Handle("/.", http.NotFoundHandler()) // reserved
 	mux.Handle("/.files/", withHeaders(http.FileServer(http.FS(newUploadsFS(db))), hdrCC, privateCache))
 	mux.Handle("/.files", http.HandlerFunc(h.uploadFile))
 	mux.Handle("/robots.txt", http.HandlerFunc(noRobots))
