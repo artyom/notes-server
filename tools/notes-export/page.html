@@ -4,7 +4,7 @@
 </head><body>
     <nav><a href="/">Back to index</a></nav>
     <main>
-    <header>Posted on <time datetime="{{.Mtime.Format "2006-01-02"}}">{{.Mtime.Format "January 2 2006"}}</time>
+    <header>Posted on <time datetime="{{.Ctime.Format "2006-01-02"}}">{{.Ctime.Format "January 2 2006"}}</time>
     {{- if .Tags}}, Tags: {{.Tags}}{{end}}</header>
     {{if .TOC}}<nav id="auto-toc"><details open><summary>Contents</summary>
         <ul>{{range .TOC}}

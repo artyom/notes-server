@@ -5,7 +5,7 @@
     <main>
         <h1>Index</h1>
         <ul>{{range . -}}
-            <li><a href="/{{.Path}}">{{.Title}}</a> <time datetime="{{.Mtime.Format "2006-01-02"}}">{{.Mtime.Format "Jan 2 2006"}}</time>
+            <li><a href="/{{.Path}}">{{.Title}}</a> <time datetime="{{.Ctime.Format "2006-01-02"}}">{{.Ctime.Format "Jan 2 2006"}}</time>
             {{if .Snippet}}<p>{{.Snippet}}</p>{{end}}
             </li>
         {{end}}</ul>

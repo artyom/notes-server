@@ -138,8 +138,8 @@ func saveAttachments(tx *sql.Tx, args runArgs) error {
 }
 
 func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.Template) error {
-	rows, err := tx.Query(`SELECT DISTINCT notes.Path,Title,Text,Mtime,Tags FROM notes, json_each(Tags)
-	WHERE json_each.value=? ORDER BY Mtime DESC`, args.Tag)
+	rows, err := tx.Query(`SELECT DISTINCT notes.Path,Title,Text,Ctime,Mtime,Tags FROM notes, json_each(Tags)
+	WHERE json_each.value=? ORDER BY Ctime DESC`, args.Tag)
 	if err != nil {
 		return err
 	}
@@ -148,24 +148,24 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 	type indexRecord struct {
 		Path, Title string
 		Snippet     string // first paragraph text
-		Mtime       time.Time
+		Ctime       time.Time
 	}
 	var index []indexRecord
 	var bodyBytes []byte
 	for rows.Next() {
 		bodyBytes = bodyBytes[:0]
 		var note struct {
-			Title   string // from db
-			path    string // from db
-			mtime   int64  // from db
-			Body    template.HTML
-			Mtime   time.Time
-			TOC     []markdown.HeadingInfo
-			HasCode bool
-			Tags    []string
+			Title        string // from db
+			path         string // from db
+			ctime, mtime int64  // from db
+			Body         template.HTML
+			Ctime, Mtime time.Time
+			TOC          []markdown.HeadingInfo
+			HasCode      bool
+			Tags         []string
 		}
 		var tagsBytes []byte
-		if err := rows.Scan(&note.path, &note.Title, &bodyBytes, &note.mtime, &tagsBytes); err != nil {
+		if err := rows.Scan(&note.path, &note.Title, &bodyBytes, &note.ctime, &note.mtime, &tagsBytes); err != nil {
 			return err
 		}
 		if !fs.ValidPath(note.path) {
@@ -174,6 +174,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 		if note.Tags, err = decodeTags(tagsBytes, args.Tag); err != nil {
 			return fmt.Errorf("decoding note %q tags: %w", note.path, err)
 		}
+		note.Ctime = time.Unix(note.ctime, 0).UTC()
 		note.Mtime = time.Unix(note.mtime, 0).UTC()
 		doc := markdown.Markdown.Parser().Parse(gtext.NewReader(bodyBytes))
 		if note.TOC, err = markdown.AssignHeaderIDs(bodyBytes, doc); err != nil {
@@ -203,7 +204,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 			return err
 		}
 		log.Printf("%s (%s)", dst, note.Title)
-		idx := indexRecord{Title: note.Title, Path: note.path, Mtime: note.Mtime}
+		idx := indexRecord{Title: note.Title, Path: note.path, Ctime: note.Ctime}
 		snippet := markdown.FirstParagraphText(bodyBytes, doc)
 		if r, _ := utf8.DecodeLastRuneInString(snippet); unicode.Is(unicode.Sentence_Terminal, r) {
 			idx.Snippet = snippet
