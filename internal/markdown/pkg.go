@@ -68,7 +68,7 @@ func AssignHeaderIDs(body []byte, doc ast.Node) ([]HeadingInfo, error) {
 	return headers, nil
 }
 
-// nodeText walks node and extracts plain text from it and its descendants,
+// nodeText walks the node and extracts plain text from it and its descendants,
 // effectively removing all markdown syntax
 func nodeText(node ast.Node, src []byte) string {
 	var b strings.Builder
@@ -80,6 +80,10 @@ func nodeText(node ast.Node, src []byte) string {
 		case ast.KindText:
 			if t, ok := n.(*ast.Text); ok {
 				b.Write(t.Text(src))
+			}
+		case ast.KindAutoLink:
+			if l, ok := n.(*ast.AutoLink); ok {
+				b.Write(l.URL(src))
 			}
 		}
 		return ast.WalkContinue, nil

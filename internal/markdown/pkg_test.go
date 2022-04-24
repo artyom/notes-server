@@ -47,6 +47,17 @@ Text
 	}
 }
 
+func Test_nodeText(t *testing.T) {
+	const input = `Some text, including an [explicit](https://example.org), and implicit links https://example.org.`
+	const want = `Some text, including an explicit, and implicit links https://example.org.`
+	bodyBytes := []byte(input)
+	doc := Markdown.Parser().Parse(gtext.NewReader(bodyBytes))
+	got := nodeText(doc, bodyBytes)
+	if got != want {
+		t.Fatalf("got:\n%q\nwant:\n%q", got, want)
+	}
+}
+
 func TestFirstParagraphText(t *testing.T) {
 	for _, tc := range testCases {
 		body := []byte(tc.body)
