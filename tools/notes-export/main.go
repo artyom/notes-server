@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -137,7 +138,7 @@ func saveAttachments(tx *sql.Tx, args runArgs) error {
 }
 
 func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.Template) error {
-	rows, err := tx.Query(`SELECT DISTINCT notes.Path,Title,Text,Mtime FROM notes, json_each(Tags)
+	rows, err := tx.Query(`SELECT DISTINCT notes.Path,Title,Text,Mtime,Tags FROM notes, json_each(Tags)
 	WHERE json_each.value=? ORDER BY Mtime DESC`, args.Tag)
 	if err != nil {
 		return err
@@ -161,12 +162,17 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 			Mtime   time.Time
 			TOC     []markdown.HeadingInfo
 			HasCode bool
+			Tags    []string
 		}
-		if err := rows.Scan(&note.path, &note.Title, &bodyBytes, &note.mtime); err != nil {
+		var tagsBytes []byte
+		if err := rows.Scan(&note.path, &note.Title, &bodyBytes, &note.mtime, &tagsBytes); err != nil {
 			return err
 		}
 		if !fs.ValidPath(note.path) {
 			return fmt.Errorf("%q is not a valid path", note.path)
+		}
+		if note.Tags, err = decodeTags(tagsBytes, args.Tag); err != nil {
+			return fmt.Errorf("decoding note %q tags: %w", note.path, err)
 		}
 		note.Mtime = time.Unix(note.mtime, 0).UTC()
 		doc := markdown.Markdown.Parser().Parse(gtext.NewReader(bodyBytes))
@@ -220,6 +226,20 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 	}
 	log.Print(dst)
 	return nil
+}
+
+func decodeTags(tagsBytes []byte, tagSkip string) ([]string, error) {
+	var allTags []string
+	if err := json.Unmarshal(tagsBytes, &allTags); err != nil {
+		return nil, err
+	}
+	out := allTags[:0]
+	for _, tag := range allTags {
+		if tag != tagSkip {
+			out = append(out, tag)
+		}
+	}
+	return out, nil
 }
 
 //go:embed index.html
