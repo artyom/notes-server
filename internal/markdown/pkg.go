@@ -79,7 +79,12 @@ func nodeText(node ast.Node, src []byte) string {
 		switch n.Kind() {
 		case ast.KindText:
 			if t, ok := n.(*ast.Text); ok {
-				b.Write(t.Text(src))
+				if text := t.Text(src); len(text) != 0 {
+					b.Write(text)
+					if t.SoftLineBreak() {
+						b.WriteByte(' ')
+					}
+				}
 			}
 		case ast.KindAutoLink:
 			if l, ok := n.(*ast.AutoLink); ok {

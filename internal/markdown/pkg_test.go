@@ -48,7 +48,11 @@ Text
 }
 
 func Test_nodeText(t *testing.T) {
-	const input = `Some text, including an [explicit](https://example.org), and implicit links https://example.org.`
+	const input = `Some text, including an
+[explicit](https://example.org),
+and implicit links
+https://example.org
+.`
 	const want = `Some text, including an explicit, and implicit links https://example.org.`
 	bodyBytes := []byte(input)
 	doc := Markdown.Parser().Parse(gtext.NewReader(bodyBytes))
