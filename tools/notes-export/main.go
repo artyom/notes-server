@@ -16,6 +16,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/artyom/notes-server/internal/markdown"
 	gtext "github.com/yuin/goldmark/text"
@@ -144,6 +146,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 	buf := new(bytes.Buffer)
 	type indexRecord struct {
 		Path, Title string
+		Snippet     string // first paragraph text
 		Mtime       time.Time
 	}
 	var index []indexRecord
@@ -194,7 +197,12 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 			return err
 		}
 		log.Printf("%s (%s)", dst, note.Title)
-		index = append(index, indexRecord{Title: note.Title, Path: note.path, Mtime: note.Mtime})
+		idx := indexRecord{Title: note.Title, Path: note.path, Mtime: note.Mtime}
+		snippet := markdown.FirstParagraphText(bodyBytes, doc)
+		if r, _ := utf8.DecodeLastRuneInString(snippet); unicode.Is(unicode.Sentence_Terminal, r) {
+			idx.Snippet = snippet
+		}
+		index = append(index, idx)
 	}
 	if err := rows.Err(); err != nil {
 		return err

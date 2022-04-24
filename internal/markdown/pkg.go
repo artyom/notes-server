@@ -121,3 +121,35 @@ func WordCountAtLeast(text []byte, want int) bool {
 	_ = scanner.Err()
 	return cnt >= want
 }
+
+// FirstParagraphText returns the plain text of the first paragraph in a
+// document. If there's anything but headings or html comments before such a
+// paragraph, it returns an empty string.
+func FirstParagraphText(body []byte, doc ast.Node) string {
+	var text string
+	fn := func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		kind := n.Kind()
+		switch kind {
+		case ast.KindDocument:
+			return ast.WalkContinue, nil
+		case ast.KindHeading:
+			return ast.WalkSkipChildren, nil
+		case ast.KindParagraph:
+			text = nodeText(n, body)
+			return ast.WalkStop, nil
+		case ast.KindHTMLBlock:
+			if lines := n.Lines(); lines != nil {
+				s := lines.At(0)
+				if bytes.HasPrefix(body[s.Start:s.Stop], []byte("<!--")) {
+					return ast.WalkContinue, nil
+				}
+			}
+		}
+		return ast.WalkStop, nil
+	}
+	_ = ast.Walk(doc, fn)
+	return strings.TrimSpace(text)
+}

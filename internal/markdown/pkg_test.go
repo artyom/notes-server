@@ -46,3 +46,78 @@ Text
 		t.Fatalf("got headers:\n%+v\nwant:\n%+v", headers, want)
 	}
 }
+
+func TestFirstParagraphText(t *testing.T) {
+	for _, tc := range testCases {
+		body := []byte(tc.body)
+		doc := Markdown.Parser().Parse(gtext.NewReader(body))
+		got := FirstParagraphText(body, doc)
+		if got != tc.want {
+			t.Fatalf("body:\n---\n%s\n---\ngot: %q\nwant: %q", tc.body, got, tc.want)
+		}
+	}
+}
+
+var testCases = []struct{ body, want string }{
+	{
+		body: `# Heading
+
+Snippet.
+`,
+		want: `Snippet.`,
+	},
+	{
+		body: `# Heading
+
+<!--
+ ignore -->
+
+Snippet.`,
+		want: `Snippet.`,
+	},
+	{
+		body: `# Heading
+
+<p>Nope.</p>
+
+Snippet.`,
+		want: "",
+	},
+	{
+		body: `# Heading
+
+1. List
+
+Text
+`,
+		want: "",
+	},
+	{
+		body: `# Heading
+
+- List
+
+Text
+`,
+		want: "",
+	},
+	{
+		body: `# Heading
+
+    #!/bin/sh
+	echo "code block"
+
+Text
+`,
+		want: "",
+	},
+	{
+		body: `# Heading
+
+> Quote
+
+Text.
+`,
+		want: "",
+	},
+}
