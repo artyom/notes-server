@@ -74,6 +74,7 @@ body {
 }
 pre {
     white-space: pre-wrap;
+    tab-size: 4;
 }
 .buttons {
     width: 100%;
