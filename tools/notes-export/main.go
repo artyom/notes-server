@@ -8,20 +8,27 @@ import (
 	"database/sql"
 	_ "embed"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"log"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/artyom/notes-server/internal/markdown"
 	gtext "github.com/yuin/goldmark/text"
+	"golang.org/x/net/html"
+	htmlatom "golang.org/x/net/html/atom"
+	"golang.org/x/tools/blog/atom"
 	_ "modernc.org/sqlite"
 )
 
@@ -138,13 +145,17 @@ func saveAttachments(tx *sql.Tx, args runArgs) error {
 }
 
 func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.Template) error {
+	buf := new(bytes.Buffer)
+	if err := indexTemplate.Execute(buf, nil); err != nil {
+		return fmt.Errorf("pre-rendering index template to get feed metadata: %w", err)
+	}
+	feed := atomFeed(buf.Bytes())
 	rows, err := tx.Query(`SELECT DISTINCT notes.Path,Title,Text,Ctime,Mtime,Tags FROM notes, json_each(Tags)
 	WHERE json_each.value=? ORDER BY Ctime DESC`, args.Tag)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	buf := new(bytes.Buffer)
 	type indexRecord struct {
 		Path, Title string
 		Snippet     string // first paragraph text
@@ -210,6 +221,16 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 			idx.Snippet = snippet
 		}
 		index = append(index, idx)
+		if feed != nil {
+			entry := &atom.Entry{
+				Title:     note.Title,
+				Summary:   &atom.Text{Type: "text", Body: snippet},
+				Published: atom.Time(note.Ctime),
+				Updated:   atom.Time(note.Mtime),
+				Link:      []atom.Link{{Rel: "alternate", Href: note.path}},
+			}
+			feed.Entry = append(feed.Entry, entry)
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return err
@@ -223,6 +244,33 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 	}
 	dst := filepath.Join(args.Dir, "index.html")
 	if err := os.WriteFile(dst, buf.Bytes(), 0666); err != nil {
+		return err
+	}
+	log.Print(dst)
+	if feed == nil {
+		return nil
+	}
+	feed.Updated = atom.Time(time.Now().UTC())
+	u, err := url.Parse(feed.Link[0].Href)
+	if err != nil {
+		return fmt.Errorf("parsing feed link: %w", err)
+	}
+	if u.Path == "" || strings.HasSuffix(u.Path, "/") {
+		return fmt.Errorf("unsupported feed url path: %q", u.Path)
+	}
+	baseUrl := &url.URL{Scheme: u.Scheme, Host: u.Host, Path: "/"}
+	feed.ID = baseUrl.String()
+	for _, e := range feed.Entry {
+		baseUrl.Path = "/" + e.Link[0].Href // at this point .Href only holds path
+		e.Link[0].Href = baseUrl.String()
+		e.ID = e.Link[0].Href
+	}
+	dst = filepath.Join(args.Dir, filepath.FromSlash(path.Clean(u.Path)))
+	feedData, err := xml.Marshal(feed)
+	if err != nil {
+		return fmt.Errorf("encoding feed: %w", err)
+	}
+	if err := os.WriteFile(dst, feedData, 0666); err != nil {
 		return err
 	}
 	log.Print(dst)
@@ -241,6 +289,105 @@ func decodeTags(tagsBytes []byte, tagSkip string) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+// atomFeed parses html body and returns atom feed, if html head has required
+// link elements.
+func atomFeed(htmlBody []byte) *atom.Feed {
+	if !bytes.Contains(htmlBody, []byte("application/atom+xml")) {
+		return nil
+	}
+	var title string          // extracted from the “title” tag
+	var domain, scheme string // extracted from the canonical link element
+	var feed *atom.Feed
+	defer func() {
+		if feed == nil {
+			return
+		}
+		if title != "" && feed.Title == "" {
+			feed.Title = title
+		}
+		if len(feed.Link) != 0 {
+			if u, err := url.Parse(feed.Link[0].Href); err == nil {
+				if u.Hostname() == "" {
+					u.Host = domain
+				}
+				if u.Scheme == "" {
+					u.Scheme = scheme
+				}
+				feed.Link[0].Href = u.String()
+			}
+		}
+	}()
+	// hasAllAttrs returns true iff attrs contains ALL of the provided kvpairs
+	hasAllAttrs := func(attrs []html.Attribute, kvpairs ...string) bool {
+		if len(kvpairs) == 0 {
+			panic("matches requires at least one kv pair")
+		}
+		if len(kvpairs)%2 != 0 {
+			panic("matches called with non-even number of kv values")
+		}
+		if len(attrs) == 0 {
+			return false
+		}
+		m := make(map[string]string, len(kvpairs)/2)
+		for i := 0; i < len(kvpairs); i += 2 {
+			m[kvpairs[i]] = kvpairs[i+1]
+		}
+		for _, a := range attrs {
+			if m[a.Key] == a.Val {
+				delete(m, a.Key)
+			}
+		}
+		return len(m) == 0
+	}
+	attrValue := func(attrs []html.Attribute, key string) string {
+		for _, a := range attrs {
+			if a.Key == key {
+				return a.Val
+			}
+		}
+		return ""
+	}
+	z := html.NewTokenizer(bytes.NewReader(htmlBody))
+	for {
+		tt := z.Next()
+		if tt == html.ErrorToken {
+			return nil
+		}
+		token := z.Token()
+		if token.DataAtom == htmlatom.Body ||
+			(token.DataAtom == htmlatom.Head && tt == html.EndTagToken) {
+			return feed
+		}
+		if tt == html.StartTagToken && token.DataAtom == htmlatom.Title {
+			if tt = z.Next(); tt != html.TextToken {
+				return nil
+			}
+			title = z.Token().Data
+			continue
+		}
+		if token.DataAtom != htmlatom.Link {
+			continue
+		}
+		href := attrValue(token.Attr, "href")
+		if href == "" {
+			continue
+		}
+		if hasAllAttrs(token.Attr, "rel", "canonical") {
+			if u, err := url.Parse(href); err == nil {
+				domain = u.Hostname()
+				scheme = u.Scheme
+			}
+			continue
+		}
+		if hasAllAttrs(token.Attr, "rel", "alternate", "type", "application/atom+xml") {
+			feed = &atom.Feed{
+				Title: attrValue(token.Attr, "title"),
+				Link:  []atom.Link{{Rel: "self", Href: href}},
+			}
+		}
+	}
 }
 
 //go:embed index.html
