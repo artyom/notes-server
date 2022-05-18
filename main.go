@@ -364,18 +364,20 @@ func (h *handler) savePage(w http.ResponseWriter, r *http.Request) {
 	}
 	text = crlf.Replace(text)
 	tags := noteTags(text)
-	var tagsJson []byte
+	tagsNamedArg := sql.Named("tags", nil)
 	if len(tags) != 0 {
+		var tagsJson []byte
 		var err error
 		if tagsJson, err = json.Marshal(tags); err != nil {
 			panic(err)
 		}
+		tagsNamedArg.Value = tagsJson
 	}
 	_, err := h.stSavePage.ExecContext(r.Context(),
 		sql.Named("path", p),
 		sql.Named("title", textTitle(text)),
 		sql.Named("text", text),
-		sql.Named("tags", tagsJson),
+		tagsNamedArg,
 	)
 	if err != nil {
 		log.Printf("updating %q: %v", p, err)
