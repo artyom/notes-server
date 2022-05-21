@@ -13,7 +13,7 @@ require (
 	golang.org/x/net v0.0.0-20220513224357-95641704303c
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/tools v0.1.10
-	modernc.org/sqlite v1.16.0
+	modernc.org/sqlite v1.17.3
 )
 
 require (
@@ -37,11 +37,11 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/cc/v3 v3.35.26 // indirect
-	modernc.org/ccgo/v3 v3.16.2 // indirect
-	modernc.org/libc v1.15.0 // indirect
+	modernc.org/cc/v3 v3.36.0 // indirect
+	modernc.org/ccgo/v3 v3.16.6 // indirect
+	modernc.org/libc v1.16.7 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
-	modernc.org/memory v1.0.7 // indirect
+	modernc.org/memory v1.1.1 // indirect
 	modernc.org/opt v0.1.3 // indirect
 	modernc.org/strutil v1.1.1 // indirect
 	modernc.org/token v1.0.0 // indirect
