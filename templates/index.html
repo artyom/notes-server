@@ -1,19 +1,18 @@
-<!doctype html><head><meta charset="utf-8"><title>All notes</title>
-    <meta name="referrer" content="same-origin">
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="/.assets/style.css">
-    {{- if .}}{{else -}}
-    <style>
-        html {block-size: 100%;}
-        body {
-            min-block-size: 100%;
-            display: grid;
-            place-content: center;
-        }
-    </style>
-    {{- end -}}
-</head>
-<body>
+<!doctype html><title>All notes</title>
+<meta name="referrer" content="same-origin">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/.assets/style.css">
+{{- if .}}{{else -}}
+<style>
+    html {block-size: 100%;}
+    body {
+        min-block-size: 100%;
+        display: grid;
+        place-content: center;
+    }
+</style>
+{{- end -}}
+
 {{if . -}}
     <header style="display: flex; justify-content: space-between; align-items: center;">
         <h1>All notes</h1>
@@ -26,11 +25,10 @@
             {{range $index, $tag := . -}}
         {{- if ne $index 0}},&nbsp;{{end -}}
         <a href="/?q=Tags:{{$tag}}" class="tagname" title="Search for all entries with this tag">{{$tag}}</a>
-        {{- end}}{{- end}}</li>
+        {{- end}}{{- end}}
     {{end}}</ul>
 {{- else -}}
     <main>
         <p style="text-align: center">You don't have any notes yet.<br>Why not <a href="/hello?edit">create a new one</a>?</p>
     </main>
 {{- end -}}
-</body>

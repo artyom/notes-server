@@ -1,32 +1,30 @@
-<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
-    <meta name="referrer" content="same-origin">
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="/.assets/style.css">{{if .HasCode}}
-    <link rel="stylesheet" media="screen and (prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/base16/ashes.min.css" integrity="sha512-KX15mI6Sw0VzQyAOf4MAPS9BZ0tWXyZrGPHKSkqDmy40Jl+79f8ltpj6FvLJ+3obnH56ww0ukclsd6xGAxb5mA==" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" media="screen and (prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/foundation.min.css" integrity="sha512-FdL5OCvSeXvgUsM1YtqlwoVmDemx1qdb+ABFDLmZ0egnFn5Jb1GCME9wIiF1FtCaKVBJtf7cdiZ6WUTdkrO89w==" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js" integrity="sha512-IaaKO80nPNs5j+VLxd42eK/7sYuXQmr+fyywCNA0e+C6gtQnuCXNtORe9xR4LqGPz5U9VpH+ff41wKs/ZmC3iA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script>hljs.highlightAll();</script>{{end}}
-</head>
-<body>
-    <nav class="buttons">
-        <form><button formmethod="GET" formaction="/"><svg class="feather"><use xlink:href="/.assets/feather-sprite.svg#home"/></svg></button></form>
-        <div style="text-align: right;">
-            <form method="GET"><button name="edit">
-                <svg class="feather"><use xlink:href="/.assets/feather-sprite.svg#edit"/></svg>
-            </button></form>
-            <form method="POST"><button onclick="return confirm('Are you sure?')" name="delete" value="true">
-                <svg class="feather"><use xlink:href="/.assets/feather-sprite.svg#trash-2"/></svg>
-            </button></form>
-        </div>
-    </nav>
-    {{with .Tags}}<nav class="taglist">{{range $index, $tag := . -}}
-        {{- if ne $index 0}},&nbsp;{{end -}}
-        <span class="tagname">{{$tag}}</span>
-        {{- end}}</nav>{{end}}
-    {{if .TOC}}<nav id="auto-toc"><details open><summary>Contents</summary>
-    <ul>{{range .TOC}}
-        <li class="h{{.Level}}"><a href="#{{.Slug}}">{{.Text}}</a></li>
-    {{end}}</ul>
-    </details></nav>{{end}}
-    <main>{{.Text}}</main>
-</body>
+<!doctype html><title>{{.Title}}</title>
+<meta name="referrer" content="same-origin">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/.assets/style.css">{{if .HasCode}}
+<link rel="stylesheet" media="screen and (prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/base16/ashes.min.css" integrity="sha512-KX15mI6Sw0VzQyAOf4MAPS9BZ0tWXyZrGPHKSkqDmy40Jl+79f8ltpj6FvLJ+3obnH56ww0ukclsd6xGAxb5mA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" media="screen and (prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/foundation.min.css" integrity="sha512-FdL5OCvSeXvgUsM1YtqlwoVmDemx1qdb+ABFDLmZ0egnFn5Jb1GCME9wIiF1FtCaKVBJtf7cdiZ6WUTdkrO89w==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js" integrity="sha512-IaaKO80nPNs5j+VLxd42eK/7sYuXQmr+fyywCNA0e+C6gtQnuCXNtORe9xR4LqGPz5U9VpH+ff41wKs/ZmC3iA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>hljs.highlightAll();</script>{{end}}
+
+<nav class="buttons">
+    <form><button formmethod="GET" formaction="/"><svg class="feather"><use xlink:href="/.assets/feather-sprite.svg#home"/></svg></button></form>
+    <div style="text-align: right;">
+        <form method="GET"><button name="edit">
+            <svg class="feather"><use xlink:href="/.assets/feather-sprite.svg#edit"/></svg>
+        </button></form>
+        <form method="POST"><button onclick="return confirm('Are you sure?')" name="delete" value="true">
+            <svg class="feather"><use xlink:href="/.assets/feather-sprite.svg#trash-2"/></svg>
+        </button></form>
+    </div>
+</nav>
+{{with .Tags}}<nav class="taglist">{{range $index, $tag := . -}}
+    {{- if ne $index 0}},&nbsp;{{end -}}
+    <span class="tagname">{{$tag}}</span>
+    {{- end}}</nav>{{end}}
+{{if .TOC}}<nav id="auto-toc"><details open><summary>Contents</summary>
+<ul>{{range .TOC}}
+    <li class="h{{.Level}}"><a href="#{{.Slug}}">{{.Text}}</a>
+{{end}}</ul>
+</details></nav>{{end}}
+<main>{{.Text}}</main>

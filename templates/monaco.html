@@ -1,17 +1,15 @@
-<!doctype html><head><meta charset="utf-8"><title>Edit page</title>
-    <link rel="icon" href="data:,">
-    <style>
-        html,body{margin: 0; padding: 0;}
-        div#editor {height: 100vh; box-sizing: border-box; overflow: hidden;}
-    </style>
-</head>
-<body>
-    <form method="POST" id="MyForm">
-        <div id="editor" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);"></div>
-        <input required type="hidden" id="text" name="text">
-        <!-- <input type="submit" value="Save" id="submitButton" onclick="save()"> -->
-    </form>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.31.1/min/vs/loader.min.js" integrity="sha512-Ffp6rxgxoBVdIqZjh+sswQIpL3Beu1BhlmisLpAZuO/8ENWpZjmjktp7w4WsaB2fgj2Tq/Sf5plViG2qJpivog==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!doctype html><title>Edit page</title>
+<link rel="icon" href="data:,">
+<style>
+    html,body{margin: 0; padding: 0;}
+    div#editor {height: 100vh; box-sizing: border-box; overflow: hidden;}
+</style>
+
+<form method="POST" id="MyForm">
+    <div id="editor" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);"></div>
+    <input required type="hidden" id="text" name="text">
+</form>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.31.1/min/vs/loader.min.js" integrity="sha512-Ffp6rxgxoBVdIqZjh+sswQIpL3Beu1BhlmisLpAZuO/8ENWpZjmjktp7w4WsaB2fgj2Tq/Sf5plViG2qJpivog==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.31.1/min/vs' }});
     require(['vs/editor/editor.main'], function() {
@@ -99,4 +97,3 @@
         ev.preventDefault();
     }
 </script>
-</body>
