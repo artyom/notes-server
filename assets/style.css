@@ -83,7 +83,7 @@ pre {
     align-items: center;
 }
 .buttons form {display: inline-block;}
-.buttons button {border: 0; background-color: transparent;}
+.buttons button {font-size: inherit;}
 
 nav.taglist {
     text-align: right;
