@@ -39,6 +39,8 @@ func main() {
 	}
 	flag.StringVar(&args.addr, "addr", args.addr, "address to listen")
 	flag.StringVar(&args.database, "db", args.database, "`path` to the database")
+	flag.StringVar(&args.collapsedTags, "tags", args.collapsedTags, "comma-separated `list` of tags that"+
+		" should be collapsed in the index view")
 	flag.Parse()
 	if err := run(ctx, args); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
@@ -47,6 +49,7 @@ func main() {
 
 type runArgs struct {
 	addr, database string
+	collapsedTags  string
 }
 
 func run(ctx context.Context, args runArgs) error {
@@ -62,6 +65,7 @@ func run(ctx context.Context, args runArgs) error {
 	}
 	const hdrCC, privateCache = "Cache-Control", "private, max-age=3600"
 	h := newHandler(db)
+	h.collapsedTags = strings.Split(args.collapsedTags, ",")
 	mux := http.NewServeMux()
 	mux.Handle("/", withHeaders(h, hdrCC, "no-store", "X-Frame-Options", "DENY"))
 	mux.Handle("/.files/", withHeaders(http.FileServer(http.FS(newUploadsFS(db))), hdrCC, privateCache))
@@ -108,6 +112,7 @@ type handler struct {
 	stDeletePage  *sql.Stmt
 	stSavePage    *sql.Stmt
 	stUploadFile  *sql.Stmt
+	collapsedTags []string
 }
 
 func newHandler(db *sql.DB) *handler {
@@ -180,7 +185,7 @@ func (h *handler) renderIndex(w http.ResponseWriter, r *http.Request) {
 		}{Term: q, Results: entries})
 		return
 	}
-	entries, err := notesIndex(r.Context(), h.stNotesIndex)
+	entries, err := notesIndex(r.Context(), h.stNotesIndex, h.collapsedTags)
 	if err != nil {
 		log.Printf("index: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -216,14 +221,16 @@ func searchNotes(ctx context.Context, stmt *sql.Stmt, term string) ([]indexEntry
 	return out, rows.Err()
 }
 
-func notesIndex(ctx context.Context, stmt *sql.Stmt) ([]indexEntry, error) {
+func notesIndex(ctx context.Context, stmt *sql.Stmt, collapsedTags []string) ([]indexEntry, error) {
 	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []indexEntry
+	var collapsed [][]indexEntry
 	var tagsJson []byte
+rowsLoop:
 	for rows.Next() {
 		var mtimeUnix int64
 		var ent indexEntry
@@ -238,9 +245,30 @@ func notesIndex(ctx context.Context, stmt *sql.Stmt) ([]indexEntry, error) {
 				return nil, fmt.Errorf("unmarshaling tags for %q: %w", ent.Path, err)
 			}
 		}
+		for i, tag := range collapsedTags {
+			for _, t := range ent.Tags {
+				if tag != t {
+					continue
+				}
+				if collapsed == nil {
+					collapsed = make([][]indexEntry, len(collapsedTags))
+				}
+				collapsed[i] = append(collapsed[i], ent)
+				continue rowsLoop
+			}
+		}
 		out = append(out, ent)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i := range collapsed {
+		if len(collapsed[i]) == 0 {
+			continue
+		}
+		out = append(out, indexEntry{Title: "Tagged as " + collapsedTags[i], SubEntries: collapsed[i]})
+	}
+	return out, nil
 }
 
 type indexEntry struct {
@@ -248,6 +276,7 @@ type indexEntry struct {
 	Snippet     template.HTML
 	Mtime       time.Time
 	Tags        []string
+	SubEntries  []indexEntry
 }
 
 func (h *handler) editPage(w http.ResponseWriter, r *http.Request) {

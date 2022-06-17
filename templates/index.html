@@ -13,6 +13,14 @@
 </style>
 {{- end -}}
 
+{{define "entry" -}}
+<a href="/{{.Path}}">{{.Title}}</a> {{with .Tags -}}
+{{range $index, $tag := . -}}
+{{- if ne $index 0}},&nbsp;{{end -}}
+<a href="/?q=Tags:{{$tag}}" class="tagname" title="Search for all entries with this tag">{{$tag}}</a>
+{{- end}}{{- end}}
+{{end}}
+
 {{if . -}}
     <header style="display: flex; justify-content: space-between; align-items: center;">
         <h1>All notes</h1>
@@ -21,11 +29,15 @@
         </form>
     </header>
     <ul>{{range . -}}
-        <li><a href="/{{.Path}}">{{.Title}}</a> {{with .Tags -}}
-            {{range $index, $tag := . -}}
-        {{- if ne $index 0}},&nbsp;{{end -}}
-        <a href="/?q=Tags:{{$tag}}" class="tagname" title="Search for all entries with this tag">{{$tag}}</a>
-        {{- end}}{{- end}}
+        <li>
+{{- if .SubEntries}}<details><summary>{{.Title}}</summary>
+    <ul>{{range .SubEntries -}}
+        <li>{{template "entry" . -}}
+    {{end}}</ul>
+</details>
+{{- else -}}
+    {{- template "entry" . -}}
+{{- end -}}
     {{end}}</ul>
 {{- else -}}
     <main>
