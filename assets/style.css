@@ -11,6 +11,7 @@
     color-scheme: light dark;
     --font-sans-serif: Verdana, Tahoma, ui-sans-serif, sans-serif;
     --font-monospace: Menlo, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', Courier, ui-monospace, monospace;
+    counter-reset: fig;
 }
 
 @media (prefers-color-scheme: light) {
@@ -132,6 +133,8 @@ main img {
     display: block;
     max-width: 100%;
 }
+img + figcaption {text-align: center; max-width: 70%; margin: auto;}
+img + figcaption::before {counter-increment: fig; content: "Fig." counter(fig) ": ";}
 
 hr {border:none; text-align:center;}
 hr:after {
