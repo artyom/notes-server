@@ -86,6 +86,8 @@ func run(args runArgs) error {
 			return err
 		}
 	}
+	indexTemplate = indexTemplate.Option("missingkey=error")
+	pageTemplate = pageTemplate.Option("missingkey=error")
 	if _, err := os.Stat(args.DB); err != nil {
 		return err
 	}

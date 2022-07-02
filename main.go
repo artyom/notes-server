@@ -535,12 +535,12 @@ var (
 	//go:embed templates
 	templateFS embed.FS
 
-	pageTemplate          = template.Must(template.ParseFS(templateFS, "templates/page.html"))
-	editPageTemplate      = template.Must(template.ParseFS(templateFS, "templates/editPage.html"))
-	richEditPageTemplate  = template.Must(template.ParseFS(templateFS, "templates/monaco.html"))
-	indexTemplate         = template.Must(template.ParseFS(templateFS, "templates/index.html"))
-	searchResultsTemplate = template.Must(template.ParseFS(templateFS, "templates/search-results.html"))
-	page404Template       = template.Must(template.ParseFS(templateFS, "templates/404.html"))
+	pageTemplate          = template.Must(template.ParseFS(templateFS, "templates/page.html")).Option("missingkey=error")
+	editPageTemplate      = template.Must(template.ParseFS(templateFS, "templates/editPage.html")).Option("missingkey=error")
+	richEditPageTemplate  = template.Must(template.ParseFS(templateFS, "templates/monaco.html")).Option("missingkey=error")
+	indexTemplate         = template.Must(template.ParseFS(templateFS, "templates/index.html")).Option("missingkey=error")
+	searchResultsTemplate = template.Must(template.ParseFS(templateFS, "templates/search-results.html")).Option("missingkey=error")
+	page404Template       = template.Must(template.ParseFS(templateFS, "templates/404.html")).Option("missingkey=error")
 )
 
 var crlf = strings.NewReplacer("\r\n", "\n")
