@@ -169,7 +169,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 		bodyBytes = bodyBytes[:0]
 		var note struct {
 			Title        string // from db
-			path         string // from db
+			Path         string // from db
 			ctime, mtime int64  // from db
 			Body         template.HTML
 			Ctime, Mtime time.Time
@@ -178,20 +178,20 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 			Tags         []string
 		}
 		var tagsBytes []byte
-		if err := rows.Scan(&note.path, &note.Title, &bodyBytes, &note.ctime, &note.mtime, &tagsBytes); err != nil {
+		if err := rows.Scan(&note.Path, &note.Title, &bodyBytes, &note.ctime, &note.mtime, &tagsBytes); err != nil {
 			return err
 		}
-		if !fs.ValidPath(note.path) {
-			return fmt.Errorf("%q is not a valid path", note.path)
+		if !fs.ValidPath(note.Path) {
+			return fmt.Errorf("%q is not a valid path", note.Path)
 		}
 		if note.Tags, err = decodeTags(tagsBytes, args.Tag); err != nil {
-			return fmt.Errorf("decoding note %q tags: %w", note.path, err)
+			return fmt.Errorf("decoding note %q tags: %w", note.Path, err)
 		}
 		note.Ctime = time.Unix(note.ctime, 0).UTC()
 		note.Mtime = time.Unix(note.mtime, 0).UTC()
 		doc := markdown.Markdown.Parser().Parse(gtext.NewReader(bodyBytes))
 		if note.TOC, err = markdown.AssignHeaderIDs(bodyBytes, doc); err != nil {
-			return fmt.Errorf("path: %s, title: %s, assigning header ids: %w", note.path, note.Title, err)
+			return fmt.Errorf("path: %s, title: %s, assigning header ids: %w", note.Path, note.Title, err)
 		}
 		buf.Reset()
 		if err := markdown.Markdown.Renderer().Render(buf, bodyBytes, doc); err != nil {
@@ -206,7 +206,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 		if err := pageTemplate.Execute(buf, note); err != nil {
 			return err
 		}
-		dst := filepath.Join(args.Dir, filepath.FromSlash(note.path))
+		dst := filepath.Join(args.Dir, filepath.FromSlash(note.Path))
 		if err := os.MkdirAll(filepath.Dir(dst), 0777); err != nil {
 			return err
 		}
@@ -217,7 +217,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 			return err
 		}
 		log.Printf("%s (%s)", dst, note.Title)
-		idx := indexRecord{Title: note.Title, Path: note.path, Ctime: note.Ctime}
+		idx := indexRecord{Title: note.Title, Path: note.Path, Ctime: note.Ctime}
 		snippet := markdown.FirstParagraphText(bodyBytes, doc)
 		if r, _ := utf8.DecodeLastRuneInString(snippet); unicode.Is(unicode.Sentence_Terminal, r) {
 			idx.Snippet = snippet
@@ -229,7 +229,7 @@ func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.T
 				Summary:   &atom.Text{Type: "text", Body: snippet},
 				Published: atom.Time(note.Ctime),
 				Updated:   atom.Time(note.Mtime),
-				Link:      []atom.Link{{Rel: "alternate", Href: note.path}},
+				Link:      []atom.Link{{Rel: "alternate", Href: note.Path}},
 			}
 			feed.Entry = append(feed.Entry, entry)
 		}
