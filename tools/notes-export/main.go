@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"net/url"
@@ -355,6 +356,9 @@ func atomFeed(htmlBody []byte) *atom.Feed {
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
+			if z.Err() == io.EOF {
+				return feed
+			}
 			return nil
 		}
 		token := z.Token()

@@ -34,6 +34,11 @@ func Test_atomFeed(t *testing.T) {
 			`,
 			wantFeed: true,
 		},
+		{
+			body: `<!doctype html><title>Fallback title</title>
+			<link rel="alternate" title="Title from the link" type="application/atom+xml" href="/feed.atom">`,
+			wantFeed: true,
+		},
 	}
 	for i, c := range testCases {
 		got := atomFeed([]byte(c.body))
