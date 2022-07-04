@@ -2,6 +2,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"database/sql"
@@ -22,6 +23,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"artyom.dev/zipserver"
 	"github.com/artyom/httpgzip"
 	"github.com/artyom/notes-server/internal/markdown"
 	gtext "github.com/yuin/goldmark/text"
@@ -77,6 +79,14 @@ func run(ctx context.Context, args runArgs) error {
 		panic(err)
 	}
 	mux.Handle("/.assets/", withHeaders(http.StripPrefix("/.assets/", http.FileServer(http.FS(afs))), hdrCC, privateCache))
+	{
+		zr, err := zip.NewReader(strings.NewReader(monacoBundle), int64(len(monacoBundle)))
+		if err != nil {
+			panic(err)
+		}
+		const prefix = "/.assets/monaco/"
+		mux.Handle(prefix, withHeaders(http.StripPrefix(prefix, zipserver.Handler(zr)), hdrCC, "private, max-age=604800, immutable"))
+	}
 	srv := &http.Server{
 		Addr:    args.addr,
 		Handler: nonPublicHandler(httpgzip.New(mux)),
@@ -528,7 +538,12 @@ func noteTags(text string) []string {
 	return out[:len(out):len(out)]
 }
 
+//go:generate go run ./gen/update-monaco-bundle https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.33.0.tgz
+
 var (
+	//go:embed monaco-minimal.zip
+	monacoBundle string
+
 	//go:embed assets
 	assetsFS embed.FS
 
