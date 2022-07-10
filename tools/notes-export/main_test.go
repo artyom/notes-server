@@ -48,3 +48,18 @@ func Test_atomFeed(t *testing.T) {
 		}
 	}
 }
+
+func Test_atomFeed_author(t *testing.T) {
+	const body = `<!doctype html><head><meta charset="utf-8"><title>Fallback title</title>
+	<link rel="alternate" title="Title from the link" type="application/atom+xml" href="/feed.atom">
+	<meta name=author content="Bob Gopher">
+	</head>Body
+	`
+	f := atomFeed([]byte(body))
+	if f == nil {
+		t.Fatal("got nil feed")
+	}
+	if f.Author == nil || f.Author.Name != "Bob Gopher" {
+		t.Fatalf("got wrong feed author: %+v", f.Author)
+	}
+}

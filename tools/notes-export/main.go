@@ -301,6 +301,7 @@ func atomFeed(htmlBody []byte) *atom.Feed {
 		return nil
 	}
 	var title string          // extracted from the “title” tag
+	var author string         // extracted from the “meta name=author” tag
 	var domain, scheme string // extracted from the canonical link element
 	var feed *atom.Feed
 	defer func() {
@@ -309,6 +310,9 @@ func atomFeed(htmlBody []byte) *atom.Feed {
 		}
 		if title != "" && feed.Title == "" {
 			feed.Title = title
+		}
+		if author != "" {
+			feed.Author = &atom.Person{Name: author}
 		}
 		if len(feed.Link) != 0 {
 			if u, err := url.Parse(feed.Link[0].Href); err == nil {
@@ -371,6 +375,10 @@ func atomFeed(htmlBody []byte) *atom.Feed {
 				return nil
 			}
 			title = z.Token().Data
+			continue
+		}
+		if token.DataAtom == htmlatom.Meta && hasAllAttrs(token.Attr, "name", "author") {
+			author = attrValue(token.Attr, "content")
 			continue
 		}
 		if token.DataAtom != htmlatom.Link {
