@@ -7,6 +7,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"io/fs"
 	"log"
@@ -58,6 +63,16 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	var imgAttrs struct {
+		valid         bool
+		width, height int
+	}
+	if strings.HasPrefix(http.DetectContentType(buf), "image/") {
+		cfg, _, err := image.DecodeConfig(bytes.NewReader(buf))
+		imgAttrs.valid = err == nil
+		imgAttrs.width = cfg.Width
+		imgAttrs.height = cfg.Height
+	}
 	sum := sha1.Sum(buf)
 	fPath := path.Join(".files", base64.RawURLEncoding.EncodeToString(sum[:]), filename)
 	_, err = h.stUploadFile.ExecContext(r.Context(),
@@ -72,7 +87,11 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	u := &url.URL{Path: "/" + fPath}
-	json.NewEncoder(w).Encode(struct{ URL string }{URL: u.String()})
+	link := u.String()
+	if imgAttrs.valid {
+		link = fmt.Sprintf("<img width=%d height=%d src=%q>", imgAttrs.width, imgAttrs.height, link)
+	}
+	json.NewEncoder(w).Encode(struct{ URL string }{URL: link})
 }
 
 func validateFilename(name string) (string, error) {

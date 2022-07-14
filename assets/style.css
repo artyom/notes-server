@@ -132,6 +132,7 @@ main img {
     margin: auto;
     display: block;
     max-width: 100%;
+    height: auto;
 }
 img + figcaption {text-align: center; max-width: 70%; margin: auto;}
 img + figcaption::before {counter-increment: fig; content: "Fig." counter(fig) ": ";}
