@@ -87,6 +87,16 @@ func run(ctx context.Context, args runArgs) error {
 		const prefix = "/.assets/monaco/"
 		mux.Handle(prefix, withHeaders(http.StripPrefix(prefix, zipserver.Handler(zr)), hdrCC, "private, max-age=604800, immutable"))
 	}
+	{
+		z, err := zip.NewReader(strings.NewReader(hljsBundle), int64(len(hljsBundle)))
+		if err != nil {
+			panic(err)
+		}
+		const prefix = "/.assets/hljs/"
+		mux.Handle(prefix, withHeaders(
+			http.StripPrefix(prefix, zipserver.Handler(z)),
+			hdrCC, "private, max-age=604800, immutable"))
+	}
 	srv := &http.Server{
 		Addr:    args.addr,
 		Handler: nonPublicHandler(httpgzip.New(mux)),
@@ -538,11 +548,15 @@ func noteTags(text string) []string {
 	return out[:len(out):len(out)]
 }
 
+//go:generate go run ./gen/hljs -version 11.5.1
 //go:generate go run ./gen/update-monaco-bundle https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.33.0.tgz
 
 var (
 	//go:embed monaco-minimal.zip
 	monacoBundle string
+
+	//go:embed hljs-bundle.zip
+	hljsBundle string
 
 	//go:embed assets
 	assetsFS embed.FS

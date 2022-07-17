@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	artyom.dev/zipserver v0.1.2
-	github.com/artyom/httpgzip v1.2.1
+	github.com/artyom/httpgzip v1.3.0
 	github.com/aws/aws-sdk-go-v2/config v1.7.0
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.14.0

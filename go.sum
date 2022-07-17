@@ -1,7 +1,7 @@
 artyom.dev/zipserver v0.1.2 h1:fDePtwJ9rl75xOjAJs8TsORyFFr9fwzHXs0IM27x5mE=
 artyom.dev/zipserver v0.1.2/go.mod h1:qxkvOXFoybOeEgbYe5fIZJiobvZGrcKdraEfvAy5U9s=
-github.com/artyom/httpgzip v1.2.1 h1:ojDitPIq9p5DQJHWsmqYjUGbAFyaVU5ev3TqpzMd1KE=
-github.com/artyom/httpgzip v1.2.1/go.mod h1:/XMDKoHyULtx5t0up+gTmT4ZC5kfILLA8dwOi9i7PDA=
+github.com/artyom/httpgzip v1.3.0 h1:O5aMoJn4sVcOabKAY4wzhe9hUhlXC/49NeYVZhSFLoY=
+github.com/artyom/httpgzip v1.3.0/go.mod h1:/XMDKoHyULtx5t0up+gTmT4ZC5kfILLA8dwOi9i7PDA=
 github.com/aws/aws-sdk-go-v2 v1.9.0 h1:+S+dSqQCN3MSU5vJRu1HqHrq00cJn6heIMU7X9hcsoo=
 github.com/aws/aws-sdk-go-v2 v1.9.0/go.mod h1:cK/D0BBs0b/oWPIcX/Z/obahJK1TT7IPVjy53i/mX/4=
 github.com/aws/aws-sdk-go-v2/config v1.7.0 h1:J2cZ7qe+3IpqBEXnHUrFrOjoB9BlsXg7j53vxcl5IVg=
