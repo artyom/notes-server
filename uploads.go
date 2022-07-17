@@ -89,7 +89,7 @@ func (h *handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 	u := &url.URL{Path: "/" + fPath}
 	link := u.String()
 	if imgAttrs.valid {
-		link = fmt.Sprintf("<img width=%d height=%d src=%q>", imgAttrs.width, imgAttrs.height, link)
+		link = fmt.Sprintf("<img width=%d height=%d src=%q loading=lazy>", imgAttrs.width, imgAttrs.height, link)
 	}
 	json.NewEncoder(w).Encode(struct{ URL string }{URL: link})
 }
