@@ -118,6 +118,7 @@ func saveAttachments(tx *sql.Tx, args runArgs) error {
 	if err != nil {
 		return err
 	}
+	var leftmostPrefix string
 	defer rows.Close()
 	for rows.Next() {
 		var att struct {
@@ -130,6 +131,9 @@ func saveAttachments(tx *sql.Tx, args runArgs) error {
 		}
 		if !fs.ValidPath(att.path) {
 			return fmt.Errorf("%q is not a valid path", att.path)
+		}
+		if leftmostPrefix == "" {
+			leftmostPrefix, _, _ = strings.Cut(att.path, "/")
 		}
 		dst := filepath.Join(args.Dir, filepath.FromSlash(att.path))
 		if err := os.MkdirAll(filepath.Dir(dst), 0777); err != nil {
@@ -144,7 +148,14 @@ func saveAttachments(tx *sql.Tx, args runArgs) error {
 		}
 		log.Print(dst)
 	}
-	return rows.Err()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if leftmostPrefix == "" {
+		return nil
+	}
+	// Put an empty index.html to disencourage direct browsing/scraping of /.files/
+	return os.WriteFile(filepath.Join(args.Dir, leftmostPrefix, "index.html"), []byte(":-P"), 0666)
 }
 
 func savePages(tx *sql.Tx, args runArgs, pageTemplate, indexTemplate *template.Template) error {
